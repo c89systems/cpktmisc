@@ -33,6 +33,9 @@ def digest(payload):return hashlib.sha256(payload).hexdigest()
 
 class Fixtures(unittest.TestCase):
     def setUp(self):
+        environment=patch.dict(os.environ)
+        environment.start();self.addCleanup(environment.stop)
+        for key in ('GROUP','PRESET','SCOPE'):os.environ.pop(key,None)
         (ROOT/'build/package-isolation-work/fixtures').mkdir(parents=True,exist_ok=True)
         self.tmp=tempfile.TemporaryDirectory(dir=ROOT/'build/package-isolation-work/fixtures')
         self.work=Path(self.tmp.name)
@@ -383,7 +386,7 @@ class Fixtures(unittest.TestCase):
         self.assertEqual(os.readlink(destination/'darwin-smoke-test/bin/link'),'program')
     def test_runtime_loaded_library_cannot_fall_back_to_sysroot(self):
         from cpkt_sdk_consumer import validate_runtime_resolution
-        prefix=self.work/'runtime-sdk';(prefix/'lib').mkdir(parents=True)
+        prefix=self.work/"runtime SDK with spaces and apostrophe's";(prefix/'lib').mkdir(parents=True)
         delivered=prefix/'lib/libcrypto.so.3';delivered.write_bytes(b'delivered bytes')
         sysroot=self.work/'sysroot';(sysroot/'lib').mkdir(parents=True)
         loader=sysroot/'lib/ld-linux-x86-64.so.2';loader.write_bytes(b'target loader')
@@ -399,6 +402,9 @@ class Fixtures(unittest.TestCase):
             return 'libcrypto.so.3 => '+str(delivered)+' (0x123)'
         with patch('cpkt_sdk_consumer.command',side_effect=selected):
             self.assertEqual(validate_runtime_resolution('consumer','x86_64-linux-gnu',configured,[])[0]['path'],str(delivered))
+        with patch('cpkt_sdk_consumer.command',return_value='libcrypto.so.3 => '+str(delivered)):
+            invocation=([str(loader),'--library-path',str(prefix/'lib'),'consumer'],True)
+            self.assertEqual(validate_runtime_resolution('consumer','x86_64-linux-gnu',configured,[],invocation)[0]['path'],str(delivered))
         outside=self.work/'host/libc.so.6';outside.parent.mkdir();outside.write_bytes(b'foreign host runtime')
         def foreign(args,**kwargs):
             if args[1]=='-l':return 'Requesting program interpreter: /lib/ld-linux-x86-64.so.2]'

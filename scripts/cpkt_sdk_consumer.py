@@ -260,9 +260,11 @@ def validate_runtime_resolution(binary,target,configured,runner,invocation=None)
     delivered={p.name for p in (prefix/'lib').rglob('*') if re.search(r'\.so(?:\.|$)',p.name)}
     dependencies=[]
     for line in resolution.splitlines():
-        link=re.match(r'\s*(\S+)\s+=>\s+(\S+)',line)
+        link=re.match(r'\s*(\S+)\s+=>\s+(.+)',line)
         if not link:continue
         name,path=link.groups()
+        # Loader output appends an address; whitespace inside a path is data.
+        path=re.sub(r'\s+\(0x[0-9a-fA-F]+\)\s*$', '', path).rstrip()
         # musl's self-libc alias can report the ELF interpreter's guest path.
         # Resolve only that alias to the loader already selected for execution.
         if target.endswith('-musl') and name=='libc.so' and Path(path).is_absolute():
