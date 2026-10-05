@@ -96,9 +96,6 @@ string(APPEND _flags
 endif()
 if(CMAKE_SYSTEM_NAME STREQUAL "Darwin")
 string(APPEND _flags " -include stdint.h -include sys/types.h")
-if(CMAKE_OSX_SYSROOT)
-string(APPEND _flags " -isysroot \"${CMAKE_OSX_SYSROOT}\"")
-endif()
 if(CPKT_MACOS_DEPLOYMENT_TARGET)
 string(APPEND _flags
         " -mmacosx-version-min=${CPKT_MACOS_DEPLOYMENT_TARGET}")
@@ -120,9 +117,6 @@ string(APPEND _flags
 endif()
 if(CMAKE_SYSTEM_NAME STREQUAL "Darwin")
 string(APPEND _flags " -include stdint.h -include sys/types.h")
-if(CMAKE_OSX_SYSROOT)
-string(APPEND _flags " -isysroot \"${CMAKE_OSX_SYSROOT}\"")
-endif()
 if(CPKT_MACOS_DEPLOYMENT_TARGET)
 string(APPEND _flags
         " -mmacosx-version-min=${CPKT_MACOS_DEPLOYMENT_TARGET}")
