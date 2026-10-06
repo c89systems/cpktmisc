@@ -1,4 +1,7 @@
 cmake_minimum_required(VERSION 3.21)
+if(NOT EXISTS "${CMAKE_SOURCE_DIR}/tests/opcua_types_fixture.bsd")
+  message(FATAL_ERROR "Required OPC UA test schema missing: tests/opcua_types_fixture.bsd")
+endif()
 include(cmake/CpktGroups.cmake)
 include(cmake/CpktOperation.cmake)
 execute_process(

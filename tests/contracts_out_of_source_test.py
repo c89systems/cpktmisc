@@ -19,7 +19,7 @@ with tempfile.TemporaryDirectory(prefix="contracts-extracted-", dir=configured) 
     binary.mkdir()
     shutil.copy2(configured / "CMakeCache.txt", binary / "CMakeCache.txt")
     shutil.copytree(repo / "scripts", source / "scripts")
-    shutil.copytree(repo / "tests" / "contracts", source / "tests" / "contracts")
+    (source / "tests").mkdir()
     for test in ('opcua_types_exports_portability_test.py', 'opcua_types_exports_test.py'):
         shutil.copy2(repo / "tests" / test, source / "tests" / test)
     shutil.copytree(repo / "include" / "cpkt", source / "include" / "cpkt")

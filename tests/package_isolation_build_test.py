@@ -16,7 +16,7 @@ from unittest.mock import patch
 
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT / 'scripts'))
-from cpkt_inventory import load, components_for, record
+from cpkt_inventory import load, components_for, record, validate_inputs
 from cpkt_receipts import publish, read, tree_identity, file_identity, validate_development, component_input_id, group_outputs
 from cpkt_lock import delegated
 from native_lifecycle_fixture import seed, environment
@@ -588,6 +588,29 @@ include(cmake/CpktPackage.cmake)
         result=subprocess.run(['bash',str(self.root/'scripts/build.sh'),'configure','--group',owner,'--preset','release'],env=self.environment,capture_output=True,text=True)
         self.assertNotEqual(result.returncode,0);self.assertIn('symlink',result.stderr)
         self.assertEqual('untouched',(sibling/'sentinel').read_text());self.assertFalse((self.root/'.cache').exists())
+
+    def test_opcua_fixture_schema_is_required_before_build(self):
+        name = 'tests/opcua_types_fixture.bsd'
+        target = load(ROOT)['targets']['cpkt_opcua_types_fixture_test']
+        self.assertIn(name, target['source_inputs'])
+        data = {'components': {}, 'groups': {'misc': {}}, 'tests': {},
+                'targets': {'fixture': target}}
+        for source in target['source_inputs']:
+            path = self.root / source
+            path.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copy2(ROOT / source, path)
+        self.assertIn(name, validate_inputs(self.root, data, 'misc'))
+        guard = (ROOT / 'CMakeLists.txt').read_text().split('include(cmake/CpktGroups.cmake)', 1)[0]
+        script = self.root / 'check-schema.cmake'
+        script.write_text('set(CMAKE_SOURCE_DIR [=[' + str(self.root) + ']=])\n' + guard)
+        result = subprocess.run(['cmake', '-P', str(script)], capture_output=True, text=True)
+        self.assertEqual(0, result.returncode, result.stdout + result.stderr)
+        (self.root / name).unlink()
+        with self.assertRaisesRegex(RuntimeError, 'inventory input missing: ' + name):
+            validate_inputs(self.root, data, 'misc')
+        result = subprocess.run(['cmake', '-P', str(script)], capture_output=True, text=True)
+        self.assertNotEqual(0, result.returncode)
+        self.assertIn('Required OPC UA test schema missing', result.stderr)
 
     def test_verification_tracks_owned_abi_and_generator_inputs(self):
         from cpkt_receipts import verification_inputs
