@@ -144,6 +144,8 @@ function(cpkt_apply_auth_export_catalog target_name catalog_name)
           "-Wl,--version-script,${_linker_file}" "-Wl,--exclude-libs,ALL")
   endif()
   if(DEFINED _linker_file)
+    include("${CMAKE_SOURCE_DIR}/cmake/CpktMutationPaths.cmake")
+    cpkt_register_generated_outputs("${_linker_file}")
     if(EXISTS "${_linker_file}")
       file(READ "${_linker_file}" _previous_linker_contents)
     endif()
@@ -616,8 +618,7 @@ if(CPKT_CAN_RUN_TARGET_EXECUTABLES)
 endif()
 find_package(Python3 REQUIRED COMPONENTS Interpreter)
 set(CPKT_OPCUA_GENERATED_DIR "${CMAKE_CURRENT_BINARY_DIR}/generated/opcua")
-add_custom_command(
-  OUTPUT "${CPKT_OPCUA_GENERATED_DIR}/cpkt/opcua_types.h"
+set(CPKT_OPCUA_GENERATED_OUTPUTS "${CPKT_OPCUA_GENERATED_DIR}/cpkt/opcua_types.h"
          "${CPKT_OPCUA_GENERATED_DIR}/cpkt/opcua_constants.h"
          "${CPKT_OPCUA_GENERATED_DIR}/cpkt/opcua_plugins.h"
          "${CPKT_OPCUA_GENERATED_DIR}/opcua_plugins_metadata.inc"
@@ -629,12 +630,16 @@ add_custom_command(
   "${CPKT_OPCUA_GENERATED_DIR}/opcua_config_plugins_metadata.inc"
          "${CPKT_OPCUA_GENERATED_DIR}/opcua_nodestore_metadata.inc"
          "${CPKT_OPCUA_GENERATED_DIR}/opcua_native_format.c"
-         "${CPKT_OPCUA_GENERATED_DIR}/opcua_native_nodestore.h"
+         "${CPKT_OPCUA_GENERATED_DIR}/opcua_native_nodestore.h")
+cpkt_register_generated_outputs(${CPKT_OPCUA_GENERATED_OUTPUTS})
+add_custom_command(
+  OUTPUT ${CPKT_OPCUA_GENERATED_OUTPUTS}
   COMMAND "${Python3_EXECUTABLE}" "${CMAKE_SOURCE_DIR}/tools/opcua/generate.py"
     --upstream "${CPKT_EXTERNAL_ROOT}/open62541/install/share/open62541"
     --output "${CPKT_OPCUA_GENERATED_DIR}"
   DEPENDS cpkt::open62541_static
     "${CMAKE_SOURCE_DIR}/tools/opcua/generate.py"
+    "${CMAKE_SOURCE_DIR}/scripts/generated_output_paths.py"
     "${CMAKE_SOURCE_DIR}/tools/opcua/c89_emitter.py"
     "${CMAKE_SOURCE_DIR}/tools/opcua/plugin_emitter.py"
     "${CMAKE_SOURCE_DIR}/tools/opcua/history_emitter.py"
@@ -1061,8 +1066,7 @@ if(CPKT_BUILD_TESTS)
     endif()
   endforeach()
   set(_cpkt_fixture_dir "${CMAKE_CURRENT_BINARY_DIR}/generated/opcua-fixture")
-  add_custom_command(
-      OUTPUT "${_cpkt_fixture_dir}/cpkt/opcua_types.h"
+  set(_cpkt_fixture_outputs "${_cpkt_fixture_dir}/cpkt/opcua_types.h"
         "${_cpkt_fixture_dir}/cpkt/opcua_constants.h"
         "${_cpkt_fixture_dir}/cpkt/opcua_plugins.h"
         "${_cpkt_fixture_dir}/opcua_plugins_metadata.inc"
@@ -1073,12 +1077,15 @@ if(CPKT_BUILD_TESTS)
     "${_cpkt_fixture_dir}/opcua_native_format.c"
     "${_cpkt_fixture_dir}/opcua_native_nodestore.h"
         "${_cpkt_fixture_dir}/native/open62541/types_generated.c"
-        "${_cpkt_fixture_dir}/native/open62541/types_generated.h"
-      COMMAND "${Python3_EXECUTABLE}" "${CMAKE_SOURCE_DIR}/tools/opcua/generate.py"
+        "${_cpkt_fixture_dir}/native/open62541/types_generated.h")
+  cpkt_register_generated_outputs(${_cpkt_fixture_outputs})
+  add_custom_command(
+    OUTPUT ${_cpkt_fixture_outputs}
+    COMMAND "${Python3_EXECUTABLE}" "${CMAKE_SOURCE_DIR}/tools/opcua/generate.py"
         --upstream "${CPKT_EXTERNAL_ROOT}/open62541/install/share/open62541"
         --output "${_cpkt_fixture_dir}"
         --extra-bsd "${CMAKE_SOURCE_DIR}/tests/opcua_types_fixture.bsd" --fixture-table
-      DEPENDS cpkt::open62541_static tools/opcua/generate.py tools/opcua/c89_emitter.py
+      DEPENDS cpkt::open62541_static scripts/generated_output_paths.py tools/opcua/generate.py tools/opcua/c89_emitter.py
         tools/opcua/plugin_emitter.py tools/opcua/history_emitter.py tools/opcua/server_emitter.py tools/opcua/node_emitter.py tools/opcua/producer_emitter.py tools/opcua/creation_emitter.py tools/opcua/client_emitter.py tools/opcua/async_client_emitter.py tools/opcua/core_client_emitter.py tools/opcua/value_emitter.py tools/opcua/certificate_emitter.py tools/opcua/utility_emitter.py tools/opcua/format_emitter.py tools/opcua/security_emitter.py tools/opcua/policy_emitter.py tools/opcua/pubsub_emitter.py tools/opcua/codec_emitter.py tools/opcua/event_emitter.py tools/opcua/dynamic_emitter.py tools/opcua/eventloop_emitter.py tools/opcua/config_emitter.py tools/opcua/config_plugin_emitter.py tools/opcua/config_server_plugin_emitter.py tools/opcua/nodestore_emitter.py tests/opcua_types_fixture.bsd VERBATIM)
   cpkt_group_add_executable(cpkt_opcua_types_fixture_test tests/opcua_types_fixture_test.c
       src/opcua_types.c "${_cpkt_fixture_dir}/native/open62541/types_generated.c")

@@ -16,8 +16,32 @@ p.add_argument("--fixture-table", action="store_true")
 a = p.parse_args()
 upstream = Path(a.upstream)
 output = Path(a.output)
-output.mkdir(parents=True, exist_ok=True)
+sys.path.insert(0, str(Path(__file__).resolve().parents[2] / 'scripts'))
+from generated_output_paths import validate_output_paths
+
+# Includes native upstream products consumed by our emitters, all public/data
+# products, and the development fixture copies. Input SDK links remain reads.
+outputs = (
+    'nodeids.h', 'types_generated.h', 'types_generated.c',
+    'cpkt/opcua_types.h', 'cpkt/opcua_constants.h', 'cpkt/opcua_plugins.h',
+    'opcua_plugins_metadata.inc', 'opcua_types_metadata.inc',
+    'opcua_message_metadata.inc', 'opcua_codec_metadata.inc',
+    'opcua_eventloop_metadata.inc', 'opcua_config_metadata.inc',
+    'opcua_config_plugins_metadata.inc', 'opcua_nodestore_metadata.inc',
+    'opcua_native_format.c', 'opcua_native_nodestore.h',
+)
 scratch = output / 'upstream'
+paths = [output / name for name in outputs] + [scratch]
+if a.fixture_table:
+    paths += [output / 'native/open62541' / ('types_generated.' + suffix)
+              for suffix in ('c', 'h')]
+# The whole old scratch tree is removed; copied input paths and maintained
+# emitter leaves are materialized there before upstream children execute.
+paths += list(scratch.rglob('*')) if scratch.is_dir() else []
+paths += [scratch / path.relative_to(upstream) for path in upstream.rglob('*')]
+paths += [scratch / path.name for path in Path(__file__).parent.glob('*_emitter.py')]
+validate_output_paths(*paths)
+output.mkdir(parents=True, exist_ok=True)
 if scratch.exists():
     shutil.rmtree(scratch)
 shutil.copytree(upstream, scratch)

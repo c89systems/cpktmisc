@@ -6,6 +6,7 @@ preprocessor output and ignores function bodies. The upstream schema generator
 continues to own schema filtering and type generation. Build products and
 reports belong under build/; the checked-in contract records binding decisions.
 """
+import sys
 import argparse
 import ast
 import json
@@ -323,6 +324,9 @@ def main():
     parser.add_argument('--report', type=Path, required=True)
     parser.add_argument('--require-complete', action='store_true')
     args = parser.parse_args()
+    sys.path.insert(0, str(Path(__file__).resolve().parents[2] / 'scripts'))
+    from generated_output_paths import validate_output_paths, write_generated_text
+    validate_output_paths(args.report)
     headers = sorted('open62541/' + str(p.relative_to(args.native_include / 'open62541'))
                      for p in (args.native_include / 'open62541').rglob('*.h'))
     native = extract(preprocess(args.compiler, args.native_include, headers))
@@ -339,7 +343,7 @@ def main():
     schema = set(re.findall(r'^  \{"(\w+)", sizeof\(cpkt_opcua_', metadata, re.M))
     report = check(native, json.loads(args.contract.read_text()), public, schema,
                    args.platform, facade['types'])
-    args.report.write_text(json.dumps(report, indent=2) + '\n')
+    write_generated_text(args.report, json.dumps(report, indent=2) + '\n')
     print(f"Public OPC UA coverage: {len(report['bound'])} bound, "
           f"{len(report['pending'])} pending, "
           f"{len(report['implementation'])} implementation-only declarations")

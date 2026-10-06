@@ -75,7 +75,13 @@ def snake(name):
     return name.lower().replace("__", "_")
 
 
+sys.path.insert(0, str(ROOT / "scripts"))
+from generated_output_paths import validate_output_paths
+
+
 def main():
+    validate_output_paths(ROOT / "include/cpkt/pdf.h", ROOT / "src/pdf.c",
+                          ROOT / "cmake/exports/cpkt_pdf.txt")
     if len(sys.argv) != 2:
         raise SystemExit(__doc__)
     upstream = pathlib.Path(sys.argv[1])
