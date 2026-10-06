@@ -137,21 +137,7 @@ endfunction()
 function(cpkt_append_external_pkg_config_env_args out_var)
 set(_args ${${out_var}})
 set(_pkg_config_dirs "")
-foreach(_prefix_var IN ITEMS
-      CPKT_ZLIB_PREFIX
-      CPKT_OPENSSL_static_PREFIX
-      CPKT_OPENSSL_shared_PREFIX
-      CPKT_NGHTTP2_static_PREFIX
-      CPKT_NGHTTP2_shared_PREFIX
-      CPKT_LIBSSH2_PREFIX
-      CPKT_LIBXML2_PREFIX
-      CPKT_LUA_PREFIX
-      CPKT_MQTTC_PREFIX
-      CPKT_OPEN62541_PREFIX
-      CPKT_KRB5_PREFIX
-      CPKT_CYRUS_SASL_PREFIX
-      CPKT_OPENLDAP_PREFIX
-      CPKT_POSTGRESQL_PREFIX)
+foreach(_prefix_var IN ITEMS CPKT_CORE_PREFIX CPKT_LIBPNG_PREFIX)
 if(DEFINED ${_prefix_var} AND NOT "${${_prefix_var}}" STREQUAL "")
 list(APPEND _pkg_config_dirs
         "${${_prefix_var}}/lib/pkgconfig"
@@ -356,7 +342,7 @@ set(build_dir "${prefix_dir}/build")
 set(install_dir "${CPKT_EXTERNAL_ROOT}/libpng/install")
 set(static_library "${install_dir}/lib/libpng16${CMAKE_STATIC_LIBRARY_SUFFIX}")
 set(shared_library "${install_dir}/lib/libpng16${CMAKE_SHARED_LIBRARY_SUFFIX}")
-set(zlib_shared_library "${CPKT_ZLIB_PREFIX}/lib/libz${CMAKE_SHARED_LIBRARY_SUFFIX}")
+set(zlib_shared_library "${CPKT_CORE_PREFIX}/lib/libz${CMAKE_SHARED_LIBRARY_SUFFIX}")
 cpkt_append_common_external_cmake_args(common_cmake_args)
 cpkt_get_external_cmake_configure_command(cmake_configure_command)
 cpkt_get_external_cmake_step_commands(cmake_build_command cmake_install_command)
@@ -396,8 +382,8 @@ cpkt_cached_external_project_add(${project_name}
         -DPNG_TOOLS=OFF
         -DPNG_HARDWARE_OPTIMIZATIONS=OFF
         -DPNG_LIBCONF_HEADER=${source_dir}/scripts/pnglibconf.h.prebuilt
-        -DZLIB_ROOT=${CPKT_ZLIB_PREFIX}
-        -DZLIB_INCLUDE_DIR=${CPKT_ZLIB_PREFIX}/include
+        -DZLIB_ROOT=${CPKT_CORE_PREFIX}
+        -DZLIB_INCLUDE_DIR=${CPKT_CORE_PREFIX}/include
         -DZLIB_LIBRARY=${zlib_shared_library}
         ${common_cmake_args}
       BUILD_COMMAND ${cmake_build_command}
@@ -449,8 +435,8 @@ set(install_rpath "$ORIGIN")
 endif()
 set(shared_png_library "${CPKT_LIBPNG_PREFIX}/lib/libpng16${CMAKE_SHARED_LIBRARY_SUFFIX}")
 set(static_png_library "${CPKT_LIBPNG_PREFIX}/lib/libpng16${CMAKE_STATIC_LIBRARY_SUFFIX}")
-set(shared_zlib_library "${CPKT_ZLIB_PREFIX}/lib/libz${CMAKE_SHARED_LIBRARY_SUFFIX}")
-set(static_zlib_library "${CPKT_ZLIB_PREFIX}/lib/libz${CMAKE_STATIC_LIBRARY_SUFFIX}")
+set(shared_zlib_library "${CPKT_CORE_PREFIX}/lib/libz${CMAKE_SHARED_LIBRARY_SUFFIX}")
+set(static_zlib_library "${CPKT_CORE_PREFIX}/lib/libz${CMAKE_STATIC_LIBRARY_SUFFIX}")
 if(CPKT_BUILD_DEPENDENCIES)
 cpkt_cached_external_project_add(${shared_project}
       URL "https://github.com/libharu/libharu/archive/refs/tags/v${CPKT_LIBHARU_VERSION}.tar.gz"
@@ -476,7 +462,7 @@ cpkt_cached_external_project_add(${shared_project}
         -DLIBHPDF_EXAMPLES=OFF
         -DPNG_PNG_INCLUDE_DIR=${CPKT_LIBPNG_PREFIX}/include
         -DPNG_LIBRARY=${shared_png_library}
-        -DZLIB_INCLUDE_DIR=${CPKT_ZLIB_PREFIX}/include
+        -DZLIB_INCLUDE_DIR=${CPKT_CORE_PREFIX}/include
         -DZLIB_LIBRARY=${shared_zlib_library}
         ${common_cmake_args}
       BUILD_COMMAND ${cmake_build_command}
@@ -506,7 +492,7 @@ cpkt_cached_external_project_add(${static_project}
         -DLIBHPDF_EXAMPLES=OFF
         -DPNG_PNG_INCLUDE_DIR=${CPKT_LIBPNG_PREFIX}/include
         -DPNG_LIBRARY=${static_png_library}
-        -DZLIB_INCLUDE_DIR=${CPKT_ZLIB_PREFIX}/include
+        -DZLIB_INCLUDE_DIR=${CPKT_CORE_PREFIX}/include
         -DZLIB_LIBRARY=${static_zlib_library}
         ${common_cmake_args}
       BUILD_COMMAND ${cmake_build_command}
@@ -897,7 +883,7 @@ set(open62541_common_cmake_args
     -DUA_BUILD_EXAMPLES=OFF
     -DUA_BUILD_TOOLS=OFF
     -DUA_BUILD_UNIT_TESTS=OFF
-    -DOpenSSL_DIR=${CPKT_OPENSSL_static_PREFIX}/lib/cmake/OpenSSL
+    -DOpenSSL_DIR=${CPKT_CORE_PREFIX}/lib/cmake/OpenSSL
     ${common_cmake_args}
   )
 if(CPKT_BUILD_DEPENDENCIES)
@@ -916,7 +902,7 @@ cpkt_cached_external_project_add(${project_name_shared}
       DEPENDS ${producer_prerequisites}
       PATCH_COMMAND
         ${CMAKE_COMMAND} -E copy_directory
-          "${CPKT_MQTTC_SOURCE_DIR}"
+          "${CPKT_CORE_PREFIX}/share/cpkt/mqtt-c"
           "${source_dir_shared}/deps/mqtt-c"
         COMMAND ${CMAKE_COMMAND}
           -DCPKT_PATCH_WORKING_DIRECTORY=${source_dir_shared}
@@ -948,7 +934,7 @@ cpkt_cached_external_project_add(${project_name_static}
       DEPENDS ${producer_prerequisites}
       PATCH_COMMAND
         ${CMAKE_COMMAND} -E copy_directory
-          "${CPKT_MQTTC_SOURCE_DIR}"
+          "${CPKT_CORE_PREFIX}/share/cpkt/mqtt-c"
           "${source_dir_static}/deps/mqtt-c"
         COMMAND ${CMAKE_COMMAND}
           -DCPKT_PATCH_WORKING_DIRECTORY=${source_dir_static}

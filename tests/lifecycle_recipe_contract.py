@@ -16,6 +16,7 @@ with tempfile.TemporaryDirectory(prefix='recipe-contract-',dir=ROOT/'build') as 
     (root/'scripts/lifecycle.sh').write_text('#!/usr/bin/env bash\nprintf "%s\\n" "$1" >> "$(dirname "$0")/../phases"\n')
     (root/'scripts/build.sh').write_text('#!/usr/bin/env bash\nprintf "%s\\n" "$1" >> "$(dirname "$0")/../phases"\n')
     (root/'scripts/package.sh').write_text('#!/usr/bin/env bash\nprintf "%s\\n" "$1" >> "$(dirname "$0")/../phases"\n')
+    (root/'scripts/core-dependency.sh').write_text('#!/usr/bin/env bash\nprintf "core-prerequisite\\n" >> "$(dirname "$0")/../phases"\n')
     subprocess.run(['bash',str(root/'scripts/release.sh'),selected],cwd=root,check=True,env=environment())
     actual=(root/'phases').read_text().splitlines()
     if actual!=expected:

@@ -31,6 +31,12 @@ Manifests retain content, modes, symlinks, versions, source hashes, facade featu
 ABI/loader identities and exact optional-core requirements. Optional providers
 use their own archive roots and versions and require a published checksum pin;
 empty target pins remain intentional until publication.
+Optional recipes use the single validated `CPKT_CORE_PREFIX` for every imported
+library. Complete release workflows restore their exact target SDK prerequisites
+after clean; source reconstruction and both Darwin proofs prepare their own
+prerequisite explicitly before consumer work. Ordinary selected builds still
+require prior `deps-core` preparation. Explicit acquisition verifies/restores the
+archive even when the installed SDK can be reused, without replacing valid bytes.
 
 Bash owns flock, stable lock inodes, nested operations, process groups, bounded
 signal cleanup and command diagnostics. Persistent service execution closes the issued descriptor numbers, including recovered handles, and clears operation capabilities before exec. `scripts/package-command.sh` applies

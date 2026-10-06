@@ -63,6 +63,111 @@ class Repository(unittest.TestCase):
             self.assertNotEqual(0,result.returncode)
             self.assertIn('requires exactly one version',result.stderr)
 
+    def test_explicit_core_acquisition_restores_archive_without_replacing_install(self):
+        from native_lifecycle_fixture import seed,environment,archive
+        from package_producer_reuse_test import prerequisite
+        from cpkt_receipts import tree_identity
+        from cpkt_core import cached_archive
+        with tempfile.TemporaryDirectory(prefix='core-archive-restoration-',dir=ROOT/'build') as temporary:
+            root=Path(temporary);seed(root);prerequisite(root)
+            target='x86_64-linux-gnu';prefix=root/'.cache/cpkt'/target/'install'
+            original=tree_identity(prefix)
+            package=root/'build/archive-payload'/('cpkt-0.1.0-'+target)
+            package.parent.mkdir(parents=True);shutil.copytree(prefix,package)
+            source=root/'build/local-core.tar.gz';archive(package,source)
+            source_bytes=source.read_bytes()
+            pins=root/'dependencies/cpkt.json';data=json.loads(pins.read_text())
+            digest=sha(source_bytes);data['targets'][target]['sha256']=digest
+            pins.write_text(json.dumps(data))
+            cache=root/'build/synthetic-shared-cache'
+            real_cmake=shutil.which('cmake');wrapper=root/'build/cmake-transport'
+            wrapper.write_text('#!'+sys.executable+'\nimport json,pathlib,subprocess,sys\n'
+                'arguments=sys.argv[1:]\n'
+                'if "-DCPKT_CORE_ACTION=acquire" in arguments:\n'
+                ' index=next(i for i,arg in enumerate(arguments) if arg.startswith("-DCPKT_CORE_PIN="))\n'
+                ' pin=pathlib.Path(arguments[index].split("=",1)[1]);data=json.loads(pin.read_text())\n'
+                ' assert data["url"].startswith("https://github.com/c89systems/cpkt/releases/download/")\n'
+                ' data["url"]='+repr(source.as_uri())+'\n'
+                ' local=pin.with_name("transport-pin.json");local.write_text(json.dumps(data))\n'
+                ' arguments[index]="-DCPKT_CORE_PIN="+str(local)\n'
+                'raise SystemExit(subprocess.call(['+repr(real_cmake)+',*arguments]))\n')
+            wrapper.chmod(0o755)
+            variables=environment();variables.update(CMAKE=str(wrapper),CPKT_DEPENDENCY_CACHE=str(cache))
+            def acquire():
+                return subprocess.run(['bash',str(root/'scripts/core-dependency.sh'),target],
+                    env=variables,capture_output=True,text=True)
+            result=acquire()
+            self.assertEqual(result.returncode,0,result.stdout+result.stderr)
+            with patch.dict(os.environ,CPKT_DEPENDENCY_CACHE=str(cache)):
+                archived=cached_archive(root,target)
+            self.assertEqual(archived.read_bytes(),source_bytes)
+            self.assertEqual(original,tree_identity(prefix))
+            stat=archived.stat();source.unlink()
+            result=acquire()
+            self.assertEqual(result.returncode,0,result.stdout+result.stderr)
+            self.assertEqual(archived.stat().st_mtime_ns,stat.st_mtime_ns)
+            self.assertEqual(original,tree_identity(prefix))
+            source.write_bytes(source_bytes);archived.write_bytes(b'corrupt archive')
+            result=acquire()
+            self.assertEqual(result.returncode,0,result.stdout+result.stderr)
+            self.assertEqual(archived.read_bytes(),source_bytes)
+            self.assertEqual(original,tree_identity(prefix))
+            archived.unlink();source.unlink()
+            result=acquire()
+            self.assertNotEqual(result.returncode,0)
+            self.assertEqual(original,tree_identity(prefix))
+
+    def test_native_recipes_use_imported_core_paths_and_mqtt_support(self):
+        with tempfile.TemporaryDirectory(prefix='misc-core-paths-',dir=ROOT/'build') as temporary:
+            work=Path(temporary);core=work/'sdk'
+            support=core/'share/cpkt/mqtt-c'
+            for name in ('src/mqtt.c','src/mqtt_pal.c','include/mqtt.h','include/mqtt_pal.h'):
+                path=support/name;path.parent.mkdir(parents=True,exist_ok=True)
+                path.write_text('synthetic MQTT support '+name)
+            toolchain=work/'toolchain';(toolchain/'bin').mkdir(parents=True)
+            for platform,suffix in (('Linux','.so'),('Darwin','.dylib')):
+                with self.subTest(platform=platform):
+                    root=work/platform;root.mkdir()
+                    records=root/'records';records.mkdir()
+                    source='cmake_minimum_required(VERSION 3.21)\nproject(prefixes NONE)\n'
+                    source+='include("'+str(ROOT/'cmake/CpktDependencies.cmake')+'")\n'
+                    source+='set(CPKT_CORE_PREFIX "'+str(core)+'")\nset(CPKT_BUILD_DEPENDENCIES ON)\n'
+                    source+='set(CMAKE_SYSTEM_NAME '+platform+')\nset(CMAKE_SHARED_LIBRARY_SUFFIX '+suffix+')\nset(CMAKE_STATIC_LIBRARY_SUFFIX .a)\n'
+                    source+='set(CPKT_TOOLCHAIN_ROOT "'+str(toolchain)+'")\n'
+                    for key in ('C_COMPILER','CXX_COMPILER','LINKER','AR','RANLIB','STRIP','NM','OBJCOPY','OBJDUMP','ADDR2LINE','READELF'):
+                        source+='set(CMAKE_'+key+' "/synthetic/bin/tool")\n'
+                    source+='set(CPKT_DEPENDENCY_BUILD_ROOT "'+str(root/'deps-build')+'")\nset(CPKT_EXTERNAL_ROOT "'+str(root/'deps')+'")\n'
+                    source+='function(cpkt_component_producer_prerequisites output)\nset(${output} "" PARENT_SCOPE)\nendfunction()\n'
+                    source+='function(cpkt_cached_external_project_add name)\nfile(WRITE "'+str(records)+'/${name}" "${ARGV}")\nadd_custom_target(${name})\nendfunction()\n'
+                    source+='cpkt_add_libpng()\ncpkt_add_libharu()\ncpkt_add_open62541()\n'
+                    source+='cpkt_append_external_pkg_config_env_args(env)\nfile(WRITE "'+str(records/'pkgconfig')+'" "${env}")\n'
+                    (root/'CMakeLists.txt').write_text(source)
+                    result=subprocess.run(['cmake','-S',str(root),'-B',str(root/'build')],capture_output=True,text=True)
+                    self.assertEqual(result.returncode,0,result.stdout+result.stderr)
+                    png=(records/'cpkt_libpng_project').read_text()
+                    for argument in ('-DZLIB_ROOT='+str(core),'-DZLIB_INCLUDE_DIR='+str(core)+'/include',
+                                     '-DZLIB_LIBRARY='+str(core)+'/lib/libz'+suffix):
+                        self.assertIn(argument,png)
+                    for variant,library_suffix in (('shared',suffix),('static','.a')):
+                        haru=(records/('cpkt_libharu_'+variant+'_project')).read_text()
+                        self.assertIn('-DZLIB_INCLUDE_DIR='+str(core)+'/include',haru)
+                        self.assertIn('-DZLIB_LIBRARY='+str(core)+'/lib/libz'+library_suffix,haru)
+                        self.assertIn('-DPNG_LIBRARY='+str(root/'deps/libpng/install/lib/libpng16')+library_suffix,haru)
+                        opcua=(records/('cpkt_open62541_'+variant+'_project')).read_text()
+                        self.assertIn('-DOpenSSL_DIR='+str(core)+'/lib/cmake/OpenSSL',opcua)
+                        self.assertIn('-DOPENSSL_USE_STATIC_LIBS:BOOL='+('ON' if variant=='static' else 'OFF'),opcua)
+                        arguments=opcua.split(';');index=arguments.index('copy_directory')
+                        origin,destination=arguments[index+1:index+3]
+                        self.assertEqual(origin,str(support))
+                        self.assertEqual(destination,str(root/('deps-build/open62541/src-'+variant+'/deps/mqtt-c')))
+                        self.assertIn('-DUA_FILE_MQTT='+destination+'/src/mqtt.c',opcua)
+                        # Execute only the recorded support-file copy, never a product step.
+                        subprocess.run(['cmake','-E','copy_directory',origin,destination],check=True)
+                        for path in support.rglob('*'):
+                            if path.is_file():self.assertEqual(path.read_bytes(),(Path(destination)/path.relative_to(support)).read_bytes())
+                    pkgconfig=(records/'pkgconfig').read_text()
+                    self.assertIn('PKG_CONFIG_LIBDIR='+str(core)+'/lib/pkgconfig:'+str(core)+'/share/pkgconfig:'+str(root/'deps/libpng/install/lib/pkgconfig'),pkgconfig)
+
     def test_hardening_inputs_fail_before_build_when_missing_or_empty(self):
         from cpkt_inventory import validate_inputs
         data=load(ROOT)

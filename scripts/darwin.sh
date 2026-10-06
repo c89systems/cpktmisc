@@ -11,6 +11,7 @@ case "${1:-}" in
     preset=arm64-apple-darwin-native
     version=$(bash "$cpkt_scripts/release-version.sh" "$cpkt_root")
     bash "$cpkt_scripts/build.sh" preflight --group all --preset "$preset"
+    bash "$cpkt_scripts/core-dependency.sh" arm64-apple-darwin
     bash "$cpkt_scripts/build.sh" test --group "$cpkt_owner" --preset "$preset"
     bash "$cpkt_scripts/package.sh" package-stage --group "$cpkt_owner" --preset "$preset" --scope selected
     python3 "$cpkt_scripts/cpkt_packages.py" invalidate --group all
@@ -20,6 +21,7 @@ case "${1:-}" in
     python3 "$cpkt_scripts/cpkt_darwin.py" smoke-zip --version "$version"
     python3 "$cpkt_scripts/cpkt_darwin.py" source-evidence ;;
   test-darwin-sdk)
+    bash "$cpkt_scripts/core-dependency.sh" arm64-apple-darwin
     base=$(python3 "$cpkt_scripts/cpkt_darwin.py" sdk-input)
     python3 "$cpkt_scripts/cpkt_packages.py" compose --group all --preset arm64-apple-darwin-native --base "$base" --fresh-owned
     python3 "$cpkt_scripts/cpkt_darwin.py" sdk-smoke

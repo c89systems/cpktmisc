@@ -20,6 +20,9 @@ for target in ('release','test-all','finalize-slice'):
     assert 'lifecycle.sh "'+target+'"' in result.stdout
 ordinary=['preflight','debug']+(['e2e-postgres'] if owner=='db' else [])+['clangd-surface','valgrind']+(['fuzz-smoke'] if owner!='db' else [])
 recipes={'release':['lifecycle-version-contract','clean','format','format-check']+ordinary+['release-final-matrix'],'release-pipeline':['format','format-check']+ordinary+['release-matrix'],'test-all':ordinary}
+recipes['release'][2:2]=['core-prerequisite']*len(data['package_targets'])
+recipes['release-pipeline'][0:0]=['core-prerequisite']*len(data['package_targets'])
+recipes['test-all'][0:0]=['core-prerequisite']
 for action,phases in recipes.items():
     subprocess.run([sys.executable,str(root/'tests/lifecycle_recipe_contract.py'),action,'\n'.join(phases)],check=True)
 if owner=='core':assert (root/'skills/pkt-systems-cmake-lifecycle/SKILL.md').is_file()

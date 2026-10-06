@@ -6,11 +6,6 @@ target=${1:?target required}
 pin=$(python3 "$cpkt_scripts/cpkt_core.py" pin --target "$target")
 export GROUP="$cpkt_owner"
 cpkt_locked "$target"
-if python3 "$cpkt_scripts/cpkt_core.py" validate --target "$target"; then
-  "$cpkt_cmake" "-DCPKT_REPO_ROOT=$cpkt_root" "-DCPKT_CORE_TARGET=$target" \
-    -DCPKT_CORE_ACTION=link -P "$cpkt_root/cmake/core-dependency.cmake"
-  exit 0
-fi
 workspace="$cpkt_root/build/core-acquisition/$target"
 mkdir -p "$workspace"
 printf '%s\n' "$pin" > "$workspace/pin.json"
@@ -18,6 +13,11 @@ printf '%s\n' "$pin" > "$workspace/pin.json"
   "-DCPKT_CORE_PIN=$workspace/pin.json" -DCPKT_CORE_ACTION=acquire \
   -P "$cpkt_root/cmake/core-dependency.cmake"
 archive=$(cat "$workspace/archive-path")
+if python3 "$cpkt_scripts/cpkt_core.py" validate --target "$target"; then
+  "$cpkt_cmake" "-DCPKT_REPO_ROOT=$cpkt_root" "-DCPKT_CORE_TARGET=$target" \
+    -DCPKT_CORE_ACTION=link -P "$cpkt_root/cmake/core-dependency.cmake"
+  exit 0
+fi
 stage=$(mktemp -d "$workspace/extract.XXXXXXXX")
 trap 'rm -rf -- "$stage"' EXIT
 python3 "$cpkt_scripts/cpkt_core.py" extract --target "$target" --archive "$archive" --destination "$stage"

@@ -968,6 +968,40 @@ leading]==] [==[literal "quotes"]==])
                                     if time.monotonic()>deadline:raise AssertionError('fixture writer kept its lease')
                                     time.sleep(.01)
 
+    def test_clean_release_restores_all_core_targets_before_consumer_work(self):
+        root=self.work/'clean-core-preparation';variables,record=trace(root)
+        result=subprocess.run(['bash',str(root/'scripts/lifecycle.sh'),'release'],env=variables,capture_output=True,text=True)
+        self.assertEqual(result.returncode,0,result.stdout+result.stderr)
+        calls=[json.loads(line)['args'] for line in record.read_text().splitlines()]
+        targets=json.loads((ROOT/'cmake/components.json').read_text())['package_targets']
+        clean=next(index for index,call in enumerate(calls) if call[0]=='clean.sh')
+        consumer=next(index for index,call in enumerate(calls) if call[0]=='build.sh')
+        prepared=[call[1] for call in calls[clean+1:consumer] if call[0]=='core-dependency.sh']
+        self.assertEqual(prepared,targets)
+        self.assertEqual(calls[0][0],'version-contract.sh')
+        self.assertEqual(clean,1)
+
+    def test_source_and_darwin_proofs_prepare_core_before_consumer_work(self):
+        for action in ('source','test-darwin-native','test-darwin-sdk'):
+            with self.subTest(action=action):
+                root=self.work/action;variables,record=trace(root)
+                for name in ('source-reconstruct.sh','darwin.sh'):
+                    shutil.copy2(ROOT/'scripts'/name,root/'scripts'/name)
+                recorder=(root/'scripts/core-dependency.sh').read_text()
+                # Stop after recording acquisition; no fake product is built.
+                (root/'scripts/core-dependency.sh').write_text(recorder.replace('exec python3','python3')+'\nexit 47\n')
+                tools=root/'build/test-tools';tools.mkdir()
+                uname=tools/'uname';uname.write_text('#!/bin/sh\ncase "$1" in -s) echo Darwin ;; -m) echo arm64 ;; *) exit 2 ;; esac\n');uname.chmod(0o755)
+                variables['PATH']=str(tools)+os.pathsep+variables['PATH']
+                variables['CPKT_DEPENDENCY_CACHE']=str(root/'build/synthetic-shared-cache')
+                command=['bash',str(root/'scripts/source-reconstruct.sh')] if action=='source' else ['bash',str(root/'scripts/darwin.sh'),action]
+                result=subprocess.run(command,env=variables,capture_output=True,text=True)
+                self.assertEqual(result.returncode,47,result.stdout+result.stderr)
+                calls=[json.loads(line)['args'] for line in record.read_text().splitlines()]
+                preparation=next(call for call in calls if call[0]=='core-dependency.sh')
+                self.assertEqual(preparation[1],'x86_64-linux-gnu' if action=='source' else 'arm64-apple-darwin')
+                self.assertFalse(any(call[0]=='build.sh' and call[1]=='test' for call in calls))
+
     def test_shell_defaults_preserve_matrix_and_selected_scope(self):
         root=self.work/'dispatch';variables,record=trace(root)
         owner=json.loads((ROOT/'cmake/components.json').read_text())['repository_group']

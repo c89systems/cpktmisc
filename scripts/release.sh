@@ -9,6 +9,11 @@ run() {
   bash "$cpkt_scripts/lifecycle.sh" "$1" --group all --preset debug --preset-explicit no \
     --scope '' --scope-explicit no --dependency ''
 }
+prepare_core_targets() {
+  while IFS= read -r target; do
+    bash "$cpkt_scripts/core-dependency.sh" "$target"
+  done < <(cpkt_info targets)
+}
 case "$action" in
   prerelease) exec bash "$0" release-pipeline ;;
   prerelease-hardening)
@@ -16,6 +21,7 @@ case "$action" in
     if [ "$cpkt_owner" != db ]; then run fuzz; fi
     exit 0 ;;
   release-matrix|release-final-matrix)
+    prepare_core_targets
     if [ "$action" = release-final-matrix ]; then export CPKT_RELEASE_PRODUCTION=1; fi
     bash "$cpkt_scripts/package.sh" package --group all --scope binary
     if [ "$action" = release-final-matrix ]; then
@@ -34,6 +40,11 @@ if [ "$action" = release ]; then
   export CPKT_RELEASE_PRODUCTION=1
   run lifecycle-version-contract
   run clean
+fi
+if [ "$action" = test-all ]; then
+  bash "$cpkt_scripts/core-dependency.sh" x86_64-linux-gnu
+else
+  prepare_core_targets
 fi
 if [ "$action" != test-all ]; then run format; run format-check; fi
 bash "$cpkt_scripts/build.sh" preflight --group all --preset debug
