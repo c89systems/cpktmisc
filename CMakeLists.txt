@@ -1447,7 +1447,7 @@ if(CPKT_BUILD_TESTS)
                     "${CMAKE_SOURCE_DIR}"
                     "${CMAKE_COMMAND}"
                     "${CMAKE_GENERATOR}"
-                    "${CMAKE_MAKE_PROGRAM}"
+                    "${CPKT_NATIVE_MAKE_PROGRAM}"
                     "${CMAKE_TOOLCHAIN_FILE}"
                     "${CMAKE_BUILD_TYPE}")
         cpkt_group_set_tests_properties(dependency_reuse_configure PROPERTIES LABELS "packaging;smoke" TIMEOUT 60)

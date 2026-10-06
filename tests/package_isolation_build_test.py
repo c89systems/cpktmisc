@@ -612,6 +612,44 @@ include(cmake/CpktPackage.cmake)
         self.assertNotEqual(0, result.returncode)
         self.assertIn('Required OPC UA test schema missing', result.stderr)
 
+    def test_dependency_reuse_registration_uses_underlying_native_tool(self):
+        source = (ROOT / 'CMakeLists.txt').read_text()
+        registration = re.search(
+            r'cpkt_group_add_test\(\s*NAME dependency_reuse_configure\b.*?\)',
+            source, re.S).group(0)
+        variables = dict(self.environment, CPKT_RESOLVED_TARGET='x86_64-linux-gnu')
+        variables.pop('CPKT_NATIVE_MAKE_PROGRAM', None)
+        owner = load(ROOT)['repository_group']
+        for broken in (False, True):
+            fixture = self.root / ('miswired' if broken else 'native-tool')
+            fixture.mkdir()
+            command = registration.replace('${CPKT_NATIVE_MAKE_PROGRAM}',
+                                           '${CMAKE_MAKE_PROGRAM}') if broken else registration
+            (fixture / 'CMakeLists.txt').write_text(
+                'cmake_minimum_required(VERSION 3.21)\nproject(reuse_registration NONE)\n'
+                'enable_testing()\n'
+                'function(cpkt_group_add_test)\n  add_test(${ARGV})\nendfunction()\n'
+                'set(CMAKE_SOURCE_DIR [=[' + str(ROOT) + ']=])\n'
+                'set(CMAKE_BUILD_TYPE Release)\n'
+                'set(CMAKE_TOOLCHAIN_FILE [=[' + str(ROOT / 'cmake/CpktReadOnlyToolchain.cmake') + ']=])\n'
+                'set(CPKT_NATIVE_MAKE_PROGRAM [=[' + shutil.which('ninja') + ']=])\n'
+                'set(CMAKE_MAKE_PROGRAM [=[' + str(ROOT / 'scripts/native-build.sh') + ']=])\n'
+                + command + '\n')
+            binary = fixture / 'binary'
+            result = subprocess.run(['cmake', '-S', str(fixture), '-B', str(binary), '-G', 'Ninja'],
+                                    env=variables, capture_output=True, text=True)
+            self.assertEqual(0, result.returncode, result.stdout + result.stderr)
+            result = subprocess.run(['bash', str(ROOT / 'scripts/operation.sh'),
+                '--group', owner, '--', 'ctest', '--test-dir', str(binary),
+                '--no-tests=error', '--stop-on-failure', '--output-on-failure', '-j1'],
+                env=variables, capture_output=True, text=True)
+            if broken:
+                self.assertNotEqual(0, result.returncode, result.stdout + result.stderr)
+                self.assertIn('Configured native build tool is missing or recursive',
+                              result.stdout + result.stderr)
+            else:
+                self.assertEqual(0, result.returncode, result.stdout + result.stderr)
+
     def test_verification_tracks_owned_abi_and_generator_inputs(self):
         from cpkt_receipts import verification_inputs
         data={'schema_version':1,'repository_group':'misc','groups':{'misc':{'requires':['core']}},
