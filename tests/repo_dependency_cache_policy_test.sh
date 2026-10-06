@@ -5,7 +5,7 @@ repo_root=$1
 contract="$repo_root/cmake/CpktDependencyContract.cmake"
 dependencies="$repo_root/cmake/CpktDependencies.cmake"
 
-if grep -R -n -E 'CPKT_DEPENDENCY_SET_ID|CpktDependency(Set|Toolchain)Identity|cpkt_dependency_(set|toolchain)_cache_id|dependency_(set|toolchain)_identity|CPKT_CURL_BUILD_CACHE_ID|CPKT_TOOLCHAIN_IDENTITY' "$repo_root/CMakeLists.txt" "$repo_root/cmake" "$repo_root/skills"; then
+if grep -R -n -E 'CPKT_DEPENDENCY_SET_ID|CpktDependency(Set|Toolchain)Identity|cpkt_dependency_(set|toolchain)_cache_id|dependency_(set|toolchain)_identity|CPKT_CURL_BUILD_CACHE_ID|CPKT_TOOLCHAIN_IDENTITY' "$repo_root/CMakeLists.txt" "$repo_root/cmake"; then
   printf 'repo-local dependency cache identity pathing must not be reintroduced\n' >&2
   exit 1
 fi

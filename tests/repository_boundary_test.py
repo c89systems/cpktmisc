@@ -216,6 +216,29 @@ class Repository(unittest.TestCase):
                 self.assertEqual(success,result.returncode==0,result.stdout+result.stderr)
                 if not success:self.assertIn('Missing required inventory case: static_archive_pic_link',result.stderr)
 
+    def test_owned_pic_policy_rejects_each_missing_recipe_setting(self):
+        import re
+        data=load(ROOT)
+        recipe=(ROOT/'cmake/CpktDependencies.cmake').read_text()
+        policy=ROOT/'tests/static_dependency_pic_policy_test.sh'
+        result=subprocess.run(['bash',str(policy),str(ROOT)],capture_output=True,text=True)
+        self.assertEqual(result.returncode,0,result.stdout+result.stderr)
+        with tempfile.TemporaryDirectory(prefix='owned-pic-policy-',dir=ROOT/'build') as temporary:
+            root=Path(temporary);(root/'cmake').mkdir()
+            for component in components_for(data,'all'):
+                function=data['components'][component]['recipe_functions'][-1]
+                body=re.search(r'function\('+re.escape(function)+r'\).*?endfunction\(\)',recipe,re.S)
+                self.assertIsNotNone(body,function)
+                settings=list(re.finditer(r'-fPIC|-DCMAKE_POSITION_INDEPENDENT_CODE=ON',body.group()))
+                self.assertTrue(settings,component+' has no owned PIC coverage')
+                for index,setting in enumerate(settings):
+                    with self.subTest(component=component,setting=index):
+                        start=body.start()+setting.start();end=body.start()+setting.end()
+                        (root/'cmake/CpktDependencies.cmake').write_text(recipe[:start]+recipe[end:])
+                        result=subprocess.run(['bash',str(policy),str(root)],capture_output=True,text=True)
+                        self.assertNotEqual(result.returncode,0,component+' missing PIC accepted')
+                        self.assertIn(function+' must retain',result.stderr)
+
     def test_release_asset_inventory_is_one_producer(self):
         data=load(ROOT);project=data['project']
         expected={project+'-1.2.3-'+target+'.tar.gz' for target in data['package_targets']}

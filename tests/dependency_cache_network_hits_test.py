@@ -69,9 +69,6 @@ def check_toolchain_caches(work):
         (repo / "scripts", "cpkt-toolchains.sh", "bootlin"),
         (repo / "scripts", "cpkt-toolchains.sh", "mig"),
         (repo / "scripts", "cpkt-aflpp.sh", "afl"),
-        (repo / "skills/pkt-systems-cmake-lifecycle/scripts", "cpkt-toolchains.sh", "bootlin"),
-        (repo / "skills/pkt-systems-cmake-lifecycle/scripts", "cpkt-toolchains.sh", "mig"),
-        (repo / "skills/pkt-systems-cmake-lifecycle/scripts", "cpkt-aflpp.sh", "skill-afl"),
     )
     for index, (directory, name, kind) in enumerate(tool_scripts):
         fixture = work / f"toolchain-{index}"
@@ -106,7 +103,7 @@ def check_toolchain_caches(work):
         archives = cache / "archives"
         archives.mkdir(parents=True)
         (archives / "previous-name.tar.gz").write_bytes(data)
-        requested = "AFLplusplus-5.02c.tar.gz" if "afl" in kind else "collection.tar.xz" if kind == "bootlin" else "mig.tar.gz"
+        requested = "AFLplusplus-5.02c.tar.gz" if kind == "afl" else "collection.tar.xz" if kind == "bootlin" else "mig.tar.gz"
         (archives / requested).write_bytes(b"corrupt requested alias")
         driver = (
             'set -euo pipefail\n'
@@ -126,8 +123,6 @@ def check_toolchain_caches(work):
             driver += 'install_host_mig_locked fixture "$fixture_digest" mig.tar.gz "$fixture_root/mig"\n'
         elif kind == "afl":
             driver += 'ensure_locked "$fixture_root/cache"\n'
-        else:
-            driver += "ensure_locked\n"
         driver_path = scripts / "driver.sh"
         driver_path.write_text(driver)
         marker = fixture / "requests"
@@ -256,4 +251,4 @@ finally:
     thread.join()
     server.server_close()
 
-print("verified cache hits made zero HTTP requests across names, all seven test-package targets, Bootlin, MIG, and both AFL++ resolvers")
+print("verified cache hits made zero HTTP requests across names, all seven test-package targets, Bootlin, MIG, and the local AFL++ resolver")

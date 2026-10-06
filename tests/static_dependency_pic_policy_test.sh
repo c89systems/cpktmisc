@@ -1,13 +1,29 @@
 #!/usr/bin/env bash
-set -eu
+set -euo pipefail
 
 script_dir=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
-repo_root=$(CDPATH= cd -- "$script_dir/.." && pwd)
+repo_root=${1:-$(CDPATH= cd -- "$script_dir/.." && pwd)}
 deps_file="$repo_root/cmake/CpktDependencies.cmake"
 
-if ! grep -F -- "--with-pic" "$deps_file" >/dev/null 2>&1; then
-  printf 'nghttp2 static archive policy must configure autotools with --with-pic\n' >&2
-  exit 1
-fi
+# Check each owned recipe separately: another dependency's PIC flags cannot
+# hide a missing flag in the static archive used by a shared consumer.
+require_pic() {
+  local recipe=$1 needle=$2 expected=$3
+  if ! awk -v recipe="$recipe" -v needle="$needle" -v expected="$expected" '
+    $0 == "function(" recipe ")" { inside = 1; next }
+    inside && /^endfunction/ { inside = 0 }
+    inside && index($0, needle) { count++ }
+    END { exit count == expected ? 0 : 1 }
+  ' "$deps_file"; then
+    printf '%s must retain %s PIC setting(s): %s\n' "$recipe" "$expected" "$needle" >&2
+    exit 1
+  fi
+}
 
-printf '[test] static dependency PIC policy passed\n'
+require_pic cpkt_add_libpng '-DCMAKE_POSITION_INDEPENDENT_CODE=ON' 1
+require_pic cpkt_add_libharu '-DCMAKE_POSITION_INDEPENDENT_CODE=ON' 2
+require_pic cpkt_add_miniaudio '-fPIC' 1
+require_pic cpkt_add_whisper '-DCMAKE_POSITION_INDEPENDENT_CODE=ON' 1
+require_pic cpkt_add_open62541 '-DCMAKE_POSITION_INDEPENDENT_CODE=ON' 1
+
+printf '[test] owned static dependency PIC policy passed\n'

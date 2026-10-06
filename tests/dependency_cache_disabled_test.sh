@@ -25,7 +25,7 @@ set(CPKT_TARGET_OS linux)
 set(CPKT_TARGET_LIBC gnu)
 set(CPKT_DEPENDENCY_BUILD_TYPE Release)
 include("${CPKT_REPO_ROOT}/cmake/CpktDependencies.cmake")
-cpkt_add_openssl()
+cpkt_add_miniaudio()
 CMAKE
 if env -u HOME -u XDG_CACHE_HOME -u CPKT_DEPENDENCY_CACHE cmake \
   -S "$work_dir/source" -B "$work_dir/binary" \
@@ -35,7 +35,7 @@ if env -u HOME -u XDG_CACHE_HOME -u CPKT_DEPENDENCY_CACHE cmake \
   printf 'disabled real recipe accepted empty caller-owned roots\n' >&2; exit 1
 fi
 
-if ! grep -F "$external_root/openssl/install/lib/libcrypto.a" "$configure_log" >/dev/null 2>&1; then
+if ! grep -F "$external_root/miniaudio/install/lib/libminiaudio.a" "$configure_log" >/dev/null 2>&1; then
   cat "$configure_log" >&2
   printf 'configure failure did not point at the caller-owned dependency root\n' >&2
   exit 1
