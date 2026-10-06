@@ -26,6 +26,20 @@ macro(cpkt_load_core_versions manifest)
   endforeach()
 endmacro()
 
+# Bind imported dependency edges to the exact already-validated package bytes.
+function(cpkt_register_core_contracts manifest)
+  string(JSON _package_id GET "${manifest}" package_id)
+  string(JSON _count LENGTH "${CPKT_INVENTORY}" components)
+  math(EXPR _last "${_count} - 1")
+  foreach(_index RANGE 0 ${_last})
+    string(JSON _component MEMBER "${CPKT_INVENTORY}" components ${_index})
+    string(JSON _external ERROR_VARIABLE _owned GET "${CPKT_INVENTORY}" components "${_component}" external)
+    if(NOT _owned AND _external STREQUAL "cpkt")
+      set_property(GLOBAL PROPERTY "CPKT_DEPENDENCY_CONTRACT_${_component}" "${_package_id}")
+    endif()
+  endforeach()
+endfunction()
+
 # Prerequisite imports only. This module never configures a core producer.
 macro(cpkt_import_core)
   execute_process(COMMAND "${CPKT_HOST_PYTHON_EXECUTABLE}" "${CMAKE_SOURCE_DIR}/scripts/cpkt_core.py"
@@ -35,6 +49,7 @@ macro(cpkt_import_core)
     message(FATAL_ERROR "Verified published core required: ${failure}")
   endif()
   cpkt_load_core_versions("${core_manifest}")
+  cpkt_register_core_contracts("${core_manifest}")
   set(prefix "${CMAKE_SOURCE_DIR}/.cache/cpkt/${CPKT_TARGET_ID}/install")
   set(CPKT_CORE_PREFIX "${prefix}" CACHE PATH "Verified pinned core installation." FORCE)
   foreach(package IN ITEMS OpenSSL CpktOpenSSL zlib nghttp2 CpktNghttp2 libssh2 CpktLibssh2 CURL libxml2 Lua CpktLua CpktLuaRuntime mqtt-c CpktMqttc Kerberos5 CpktGssapi CyrusSASL CpktSasl OpenLDAP cmocka CpktCmocka)

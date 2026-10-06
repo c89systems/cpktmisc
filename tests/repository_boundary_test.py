@@ -39,11 +39,15 @@ class Repository(unittest.TestCase):
         external={name:item for name,item in data['components'].items() if item.get('external')=='cpkt'}
         with tempfile.TemporaryDirectory(prefix='core-version-import-',dir=ROOT/'build') as temporary:
             work=Path(temporary)
-            manifest={'components':[{'name':name,'version':'9.8.'+str(index)} for index,name in enumerate(external)]}
+            manifest={'package_id':'a'*64,'components':[{'name':name,'version':'9.8.'+str(index)} for index,name in enumerate(external)]}
             (work/'manifest.json').write_text(json.dumps(manifest))
             source='file(READ "'+str(ROOT/'cmake/components.json')+'" CPKT_INVENTORY)\n'
             source+='include("'+str(ROOT/'cmake/CpktCoreImports.cmake')+'")\n'
             source+='file(READ "'+str(work/'manifest.json')+'" manifest)\ncpkt_load_core_versions("${manifest}")\n'
+            source+='cpkt_register_core_contracts("${manifest}")\n'
+            for name in external:
+                source+='get_property(id GLOBAL PROPERTY "CPKT_DEPENDENCY_CONTRACT_'+name+'")\n'
+                source+='if(NOT id STREQUAL "'+('a'*64)+'")\nmessage(FATAL_ERROR "Missing imported contract")\nendif()\n'
             for index,item in enumerate(external.values()):
                 variable=item['package']['version_variable']
                 source+='if(NOT "${'+variable+'}" STREQUAL "9.8.'+str(index)+'")\nmessage(FATAL_ERROR "Stale imported version '+variable+'")\nendif()\n'

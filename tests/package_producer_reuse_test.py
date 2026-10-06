@@ -56,7 +56,7 @@ def setup(generator, parent):
     for path in ROOT.glob('scripts/cpkt_*.py'):shutil.copy2(path,root/'scripts'/path.name)
     for name in ('validate-sdk.py',):shutil.copy2(ROOT/'scripts'/name,root/'scripts'/name)
     for path in ROOT.glob('scripts/*.sh'):shutil.copy2(path,root/'scripts'/path.name)
-    for name in ('CpktGroups.cmake','CpktOperation.cmake','CpktDependencyContract.cmake','CpktTestInventory.cmake','CpktSDKInstall.cmake','CpktComponentInventory.cmake','CpktLiteralArguments.cmake','CpktVerifiedExternalProject.cmake','lifecycle-info.cmake','producer-cache.cmake'):
+    for name in ('CpktGroups.cmake','CpktOperation.cmake','CpktDependencyContract.cmake','validate-dependency-contract.cmake','CpktTestInventory.cmake','CpktSDKInstall.cmake','CpktComponentInventory.cmake','CpktLiteralArguments.cmake','CpktVerifiedExternalProject.cmake','lifecycle-info.cmake','producer-cache.cmake'):
         shutil.copy2(ROOT/'cmake'/name,root/'cmake'/name)
     (root/'VERSION').write_text('1.2.3\n')
     resolver=root/'scripts/cpkt-toolchains.sh'
@@ -152,6 +152,22 @@ else()
  cmake_language(DEFER CALL cpkt_validate_owned_graph)
 endif()
 '''.replace(' COMPONENT)', ' '+COMPONENT+')')
+    (root/'CMakeLists.txt').write_text(main)
+    shutil.copy2(ROOT/'cmake/CpktCoreImports.cmake',root/'cmake/CpktCoreImports.cmake')
+    # Exercise a real native dependency edge to the independently validated
+    # core package identity; never start a core producer in this fixture.
+    recipe=recipe.replace('INPUT_FILES "${CMAKE_SOURCE_DIR}/tests/phase.py"',
+                          'DEPENDS coredep INPUT_FILES "${CMAKE_SOURCE_DIR}/tests/phase.py"')
+    (root/'cmake/CpktDependencies.cmake').write_text(recipe)
+    imports='''include(cmake/CpktCoreImports.cmake)
+execute_process(COMMAND "${CPKT_HOST_PYTHON_EXECUTABLE}" "${CMAKE_SOURCE_DIR}/scripts/cpkt_core.py"
+ manifest --target "${CPKT_TARGET_ID}" RESULT_VARIABLE status OUTPUT_VARIABLE manifest ERROR_VARIABLE failure)
+if(NOT status EQUAL 0)
+ message(FATAL_ERROR "${failure}")
+endif()
+cpkt_register_core_contracts("${manifest}")
+'''
+    main=main.replace('include(cmake/CpktDependencies.cmake)',imports+'include(cmake/CpktDependencies.cmake)')
     (root/'CMakeLists.txt').write_text(main)
     return root,presets,main
 
