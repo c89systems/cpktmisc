@@ -267,6 +267,47 @@ class Repository(unittest.TestCase):
             with self.assertRaisesRegex(ValueError,'content/mode'):validator.validate(prefix,['core','db'])
 
     @unittest.skipIf(REPOSITORY_GROUP=='core','core has no external provider')
+    def test_core_acquisition_rejects_symlinked_workspaces_before_writes(self):
+        from native_lifecycle_fixture import seed, environment
+        from package_producer_reuse_test import prerequisite
+        from cpkt_receipts import tree_identity
+        (ROOT / 'build').mkdir(exist_ok=True)
+        for redirected in ('workspace', 'target', 'pin.json', 'archive-path'):
+            with self.subTest(redirected=redirected), tempfile.TemporaryDirectory(
+                    prefix='core-workspace-boundary-', dir=ROOT / 'build') as temporary:
+                work = Path(temporary)
+                root = work / 'repository'
+                seed(root)
+                prerequisite(root)
+                other = work / 'unrelated'
+                other.mkdir()
+                (other / 'pin.json').write_text('unrelated pin')
+                (other / 'archive-path').write_text('unrelated archive')
+                target = root / 'build/core-acquisition/x86_64-linux-gnu'
+                if redirected == 'workspace':
+                    target.parent.parent.mkdir(parents=True, exist_ok=True)
+                    target.parent.symlink_to(other, target_is_directory=True)
+                elif redirected == 'target':
+                    target.parent.mkdir(parents=True, exist_ok=True)
+                    target.symlink_to(other, target_is_directory=True)
+                else:
+                    target.mkdir(parents=True, exist_ok=True)
+                    (target / redirected).symlink_to(other / redirected)
+                marker = work / 'acquisition-started'
+                cmake = work / 'cmake-probe'
+                cmake.write_text('#!/bin/sh\ncase "$*" in *CPKT_CORE_ACTION=acquire*) touch '
+                    + str(marker) + '; exit 47 ;; esac\nexec ' + shutil.which('cmake') + ' "$@"\n')
+                cmake.chmod(0o755)
+                before = tree_identity(other)
+                result = subprocess.run(['bash', str(root / 'scripts/core-dependency.sh'),
+                    'x86_64-linux-gnu'], env=dict(environment(), CMAKE=str(cmake)),
+                    capture_output=True, text=True)
+                self.assertNotEqual(0, result.returncode)
+                self.assertIn('symlink ancestor', result.stderr)
+                self.assertFalse(marker.exists())
+                self.assertEqual(before, tree_identity(other))
+
+    @unittest.skipIf(REPOSITORY_GROUP=='core','core has no external provider')
     def test_missing_pin_fails_before_acquisition_or_mutation(self):
         from native_lifecycle_fixture import seed,environment
         from cpkt_receipts import tree_identity

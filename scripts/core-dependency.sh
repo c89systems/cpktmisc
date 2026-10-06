@@ -7,6 +7,9 @@ pin=$(python3 "$cpkt_scripts/cpkt_core.py" pin --target "$target")
 export GROUP="$cpkt_owner"
 cpkt_locked "$target"
 workspace="$cpkt_root/build/core-acquisition/$target"
+cpkt_owned_path "$workspace"
+cpkt_owned_path "$workspace/pin.json"
+cpkt_owned_path "$workspace/archive-path"
 mkdir -p "$workspace"
 printf '%s\n' "$pin" > "$workspace/pin.json"
 "$cpkt_cmake" "-DCPKT_REPO_ROOT=$cpkt_root" "-DCPKT_CORE_TARGET=$target" \
