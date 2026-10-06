@@ -1,4 +1,5 @@
 include(ExternalProject)
+include("${CMAKE_CURRENT_LIST_DIR}/CpktVerifiedExternalProject.cmake")
 include("${CMAKE_CURRENT_LIST_DIR}/CpktDependencyArchiveCache.cmake")
 macro(cpkt_cached_external_project_add)
 set(_cpkt_ep_args ${ARGV})
@@ -44,7 +45,7 @@ foreach(_cpkt_ep_remove_index RANGE 1 ${_cpkt_ep_remove_count})
 list(REMOVE_AT _cpkt_ep_args ${_cpkt_ep_url_index})
 endforeach()
 list(INSERT _cpkt_ep_args ${_cpkt_ep_url_index} URL "${_cpkt_ep_cached_archive}")
-ExternalProject_Add(${_cpkt_ep_args})
+cpkt_external_project_add(${_cpkt_ep_args})
 endmacro()
 function(cpkt_order_shared_install shared_project static_project)
 ExternalProject_Add_StepTargets(${static_project} install)
@@ -1086,12 +1087,30 @@ if(CPKT_DEPENDENCY_PRODUCER AND _owner STREQUAL CPKT_GROUP)
 set(CPKT_BUILD_DEPENDENCIES ON)
 endif()
 if(NOT CPKT_BUILD_DEPENDENCIES)
-execute_process(COMMAND "${CPKT_OPERATION_PYTHON}" "${CMAKE_SOURCE_DIR}/scripts/cpkt_receipt_cli.py"
+execute_process(COMMAND "${CPKT_HOST_PYTHON_EXECUTABLE}" "${CMAKE_SOURCE_DIR}/scripts/cpkt_receipt_cli.py"
         --root "${CMAKE_SOURCE_DIR}" --group "${CPKT_GROUP}" --target "${CPKT_TARGET_ID}"
         --component "${_component}" --preset "$ENV{CPKT_PRESET}"
         RESULT_VARIABLE _receipt_status)
 if(NOT _receipt_status EQUAL 0)
 message(FATAL_ERROR "Unverified dependency import: ${_component}")
+endif()
+endif()
+set(CPKT_VERIFIED_COMPONENT "")
+set(CPKT_VERIFIED_COMPONENT_DEPENDS "")
+get_property(_verified GLOBAL PROPERTY "CPKT_VERIFIED_COMPONENT_${_component}")
+if(CPKT_BUILD_DEPENDENCIES AND _verified)
+set(CPKT_VERIFIED_COMPONENT "${_component}")
+string(JSON _directory GET "${CPKT_INVENTORY}" components "${_component}" directory)
+set(CPKT_VERIFIED_COMPONENT_INSTALL "${CPKT_EXTERNAL_ROOT}/${_directory}/install")
+string(JSON _count LENGTH "${CPKT_INVENTORY}" components "${_component}" dependencies)
+if(_count GREATER 0)
+math(EXPR _last "${_count} - 1")
+foreach(_index RANGE 0 ${_last})
+string(JSON _dependency GET "${CPKT_INVENTORY}" components "${_component}" dependencies ${_index})
+if(TARGET "cpkt_deps_${_dependency}")
+list(APPEND CPKT_VERIFIED_COMPONENT_DEPENDS "cpkt_deps_${_dependency}")
+endif()
+endforeach()
 endif()
 endif()
 get_property(_before GLOBAL PROPERTY CPKT_DEPENDENCY_TARGETS)
@@ -1105,12 +1124,14 @@ set_property(GLOBAL PROPERTY "CPKT_PRODUCER_TARGETS_${_component}" "${_component
 if(_component_targets)
 set(_remaining "${_component_targets}")
 list(POP_BACK _remaining _last_project)
+if(NOT CPKT_VERIFIED_COMPONENT)
 ExternalProject_Add_Step(${_last_project} cpkt-receipt
-        COMMAND "${CPKT_OPERATION_PYTHON}" "${CMAKE_SOURCE_DIR}/scripts/cpkt_receipt_cli.py"
+        COMMAND "${CPKT_HOST_PYTHON_EXECUTABLE}" "${CMAKE_SOURCE_DIR}/scripts/cpkt_receipt_cli.py"
           --root "${CMAKE_SOURCE_DIR}" --group "${CPKT_GROUP}" --target "${CPKT_TARGET_ID}"
           --component "${_component}" --publish
         DEPENDEES install DEPENDS ${_remaining}
         WORKING_DIRECTORY "${CMAKE_BINARY_DIR}")
+endif()
 add_custom_target(cpkt_deps_${_component} DEPENDS ${_component_targets})
 list(APPEND _all_dependency_targets ${_component_targets})
 endif()

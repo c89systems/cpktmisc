@@ -28,7 +28,7 @@ endmacro()
 
 # Prerequisite imports only. This module never configures a core producer.
 macro(cpkt_import_core)
-  execute_process(COMMAND "${CPKT_OPERATION_PYTHON}" "${CMAKE_SOURCE_DIR}/scripts/cpkt_core.py"
+  execute_process(COMMAND "${CPKT_HOST_PYTHON_EXECUTABLE}" "${CMAKE_SOURCE_DIR}/scripts/cpkt_core.py"
     manifest --target "${CPKT_TARGET_ID}" RESULT_VARIABLE status OUTPUT_VARIABLE core_manifest
     ERROR_VARIABLE failure OUTPUT_STRIP_TRAILING_WHITESPACE)
   if(NOT status EQUAL 0)

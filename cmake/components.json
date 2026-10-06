@@ -72,7 +72,16 @@
         "src/opcua_value.c",
         "src/pdf.c",
         "src/sus.c",
-        "cmake/exports/cpkt_pdf.txt"
+        "cmake/exports/cpkt_pdf.txt",
+        "cmake/CpktABIVersions.cmake",
+        "cmake/CpktPreflightTests.cmake",
+        "cmake/CpktTestInventory.cmake",
+        "scripts/lifecycle.sh",
+        "scripts/build.sh",
+        "scripts/operation.sh",
+        "cmake/producer-cache.cmake",
+        "scripts/archive.sh",
+        "scripts/package-command.sh"
       ],
       "core_components": [
         "curl",
@@ -4908,9 +4917,9 @@
       "helper_inputs": [
         "scripts/cpkt_sdk_consumer.py",
         "scripts/cpkt_packages.py",
-        "scripts/cpkt_package_command.py",
+        "scripts/package-command.sh",
         "scripts/cpkt_inventory.py",
-        "scripts/cpkt_operation.py",
+        "scripts/cpkt_lock.py",
         "scripts/cpkt_receipts.py",
         "scripts/validate-sdk.py"
       ]

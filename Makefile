@@ -84,8 +84,8 @@ print-release-version:
 	@bash scripts/release-version.sh "$(CURDIR)"
 
 build build-debug build-host build-release clangd-surface clean clean-dist cpktxscribe cross-build cross-test debug deps deps-all deps-cross deps-debug deps-release e2e-cpktxscribe e2e-sus example-audio-live-vox example-audio-live-vox-static example-audio-vox-intro example-sus-live-vox example-sus-live-vox-static example-sus-vox-intro examples finalize-slice format format-check fuzz fuzz-long fuzz-smoke lifecycle-version-contract package package-checksums package-source package-source-smoke package-verify prerelease prerelease-hardening prerelease-live release release-final-matrix release-matrix release-pipeline source-archive test test-all test-cross test-darwin-native test-darwin-sdk test-debug test-github-actions-contracts test-host test-install-tree valgrind verify-release-archives verify-release-privacy verify-source-archive:
-	@python3 scripts/cpkt_lifecycle.py "$@" --group "$(GROUP)" --preset "$(PRESET)" --preset-explicit "$(PRESET_EXPLICIT)" --scope "$(SCOPE)" --scope-explicit "$(SCOPE_EXPLICIT)" --dependency "$(DEPENDENCY)"
+	@bash scripts/lifecycle.sh "$@" --group "$(GROUP)" --preset "$(PRESET)" --preset-explicit "$(PRESET_EXPLICIT)" --scope "$(SCOPE)" --scope-explicit "$(SCOPE_EXPLICIT)" --dependency "$(DEPENDENCY)"
 
 .PHONY: deps-core
 deps-core:
-	@python3 scripts/cpkt_lifecycle.py deps-core --group "$(GROUP)" --preset "$(PRESET)"
+	@bash scripts/lifecycle.sh deps-core --group "$(GROUP)" --preset "$(PRESET)"

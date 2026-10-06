@@ -32,15 +32,15 @@ case "$group" in
   *) printf 'unknown GROUP: %s\n' "$group" >&2; exit 2 ;;
 esac
 if [[ -z ${CPKT_OPERATION_FD:-} ]]; then
-  exec python3 "$script_dir/cpkt_operation.py" --group "$group" -- bash "$0" "$mode" --preset "$preset"
+  exec bash "$script_dir/operation.sh" --group "$group" -- bash "$0" "$mode" --preset "$preset"
 fi
-python3 "$script_dir/cpkt_operation.py" --group "$group" --check
+bash "$script_dir/operation.sh" --group "$group" --check
 cd "$repo_root"
 
 if [[ $group == misc || $group == all ]]; then
-  python3 "$script_dir/group-build.py" build --group misc --preset opcua-fuzz --target cpkt_opcua_types_generate
-  directory=$(python3 "$script_dir/group-build.py" path --group misc --preset opcua-fuzz)
+  bash "$script_dir/build.sh" build --group misc --preset opcua-fuzz --target cpkt_opcua_types_generate
+  directory=$(bash "$script_dir/build.sh" path --group misc --preset opcua-fuzz)
   "${CTEST:-ctest}" --test-dir "$directory" -R '^opcua_format_optimized_compile$' --no-tests=error --output-on-failure
-  python3 "$script_dir/group-build.py" build --group misc --preset opcua-fuzz --target cpkt_opcua_facade_fuzz
-  python3 "$script_dir/cpkt_fuzz_run.py" --group misc "$mode" "$directory/cpkt_opcua_facade_fuzz" fuzz/seeds/opcua
+  bash "$script_dir/build.sh" build --group misc --preset opcua-fuzz --target cpkt_opcua_facade_fuzz
+  bash "$script_dir/run-afl-fuzz.sh" "$mode" "$directory/cpkt_opcua_facade_fuzz" fuzz/seeds/opcua
 fi

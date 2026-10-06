@@ -10,8 +10,7 @@ import tempfile
 import signal
 from contextlib import contextmanager
 from cpkt_packages import ROOT, safe_owned, safe_extract, prefix_name, validator, prepared_core, command, version
-from cpkt_inventory import REPOSITORY_GROUP,GROUPS
-from cpkt_operation import delegated, run as locked_run
+from cpkt_lock import delegated, ensure_operation as locked_run
 
 def main():
     values={}
@@ -24,11 +23,11 @@ def main():
     parser.add_argument('--archive',type=Path,default=values.get('CPKT_ARCHIVE'))
     parser.add_argument('--target',default=values.get('CPKT_TARGET_ID'))
     parser.add_argument('--version',default=values.get('CPKT_BUNDLE_VERSION'))
-    parser.add_argument('--group',choices=[REPOSITORY_GROUP],default=values.get('CPKT_GROUP',os.environ.get('GROUP',REPOSITORY_GROUP) if os.environ.get('GROUP')!='all' else REPOSITORY_GROUP))
+    parser.add_argument('--group',choices=['core','db','misc'],default=values.get('CPKT_GROUP',os.environ.get('GROUP','core') if os.environ.get('GROUP')!='all' else 'core'))
     parser.add_argument('--preset');parser.add_argument('--consumers',action='store_true')
     selected=parser.parse_args(args)
     if not selected.archive or not selected.target or not selected.version:parser.error('archive, target and version are required')
-    if 'CPKT_OPERATION_FD' not in os.environ:return locked_run(ROOT,selected.group,[sys.executable,__file__]+sys.argv[1:])
+    if 'CPKT_OPERATION_FD' not in os.environ:locked_run(ROOT,selected.group)
     delegated(ROOT,selected.group)
     expected=prefix_name(selected.version,selected.target)
     # Reject obsolete test-only payloads even if a forged manifest declares them.
@@ -48,8 +47,7 @@ def main():
         groups=['core']
         if selected.group!='core':
             archive,_=prepared_core(selected.version,selected.target,selected.preset or selected.target+'-release')
-            from cpkt_packages import extract_core
-            extract_core(archive,workspace,selected.version,selected.target);groups.append(selected.group)
+            safe_extract(archive,workspace,expected);groups.append(selected.group)
         prefix=safe_extract(selected.archive,workspace,expected)
         validator.validate(prefix,groups,selected.version,selected.target)
         if selected.consumers:

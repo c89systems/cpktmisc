@@ -192,7 +192,7 @@ expect_verify_failure "$(make_archive manifest-mismatch cpktmisc-1.2.3)" \
 rm "$fixture_root/extra-unlisted.txt"
 (cd "$fixture_root" && find . -type f | sed 's#^\./##' | sort > RELEASE_MANIFEST)
 for missing in \
-  scripts/cpkt_package_command.py \
+  scripts/package-command.sh \
   tools/opcua/generate.py \
   vendor/open62541/patches/0028-keep-disabled-lock-assert-warning-clean.patch
 do

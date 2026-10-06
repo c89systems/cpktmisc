@@ -11,6 +11,7 @@ if(NOT CPKT_PROJECT_VERSION_RESULT EQUAL 0)
   message(FATAL_ERROR "failed to resolve cpkt release version")
 endif()
 project(cpktmisc VERSION "${CPKT_PROJECT_VERSION}" LANGUAGES C CXX)
+include(cmake/CpktABIVersions.cmake)
 if(CMAKE_SYSTEM_NAME STREQUAL "Darwin" AND CPKT_OSXCROSS_ROOT)
   set(_cpkt_osxcross_link_launcher "${_cpkt_build_launcher}")
   foreach(_cpkt_argument IN ITEMS "${CMAKE_COMMAND}" "-E" "env"
@@ -35,7 +36,7 @@ option(CPKT_CALLER_OWNED_DEPENDENCY_ROOTS "Treat explicitly overridden dependenc
 option(CPKT_ENABLE_FUZZING "Build AFL++ GCC-plugin facade fuzz targets." OFF)
 option(CPKT_FACADE_ONLY "Build only repo-owned facade hardening targets." OFF)
 if(CPKT_BUILD_DEPENDENCIES AND NOT CPKT_DEPENDENCY_PRODUCER)
-  message(FATAL_ERROR "Use scripts/group-build.py configure/build to prepare the single owning producer; repository consumer graphs import successful output only")
+  message(FATAL_ERROR "Use scripts/build.sh configure/build to prepare the single owning producer; repository consumer graphs import successful output only")
 endif()
 option(CPKT_SUS_CPU_ONLY "Build the cpkt_sus whisper.cpp dependency set with CPU backends only." ON)
 function(cpkt_normalize_arch arch out_var)
@@ -226,19 +227,6 @@ function(cpkt_register_local_runtime_checks)
       list(APPEND _cpkt_local_executables "$<TARGET_FILE:${_cpkt_target}>")
     endif()
   endforeach()
-  if(CPKT_COMPOSITION_ONLY)
-    foreach(_group core db misc)
-      file(GLOB _cpkt_owner_files "${CMAKE_SOURCE_DIR}/build/${CPKT_TARGET_ID}/${_group}/${CMAKE_BUILD_TYPE}/*")
-      foreach(_file IN LISTS _cpkt_owner_files)
-        if(NOT IS_DIRECTORY "${_file}")
-          file(READ "${_file}" _magic LIMIT 4 HEX)
-          if(_magic STREQUAL "7f454c46" AND NOT _file MATCHES "[.](so([.][0-9]+)*|o)$")
-            list(APPEND _cpkt_local_executables "${_file}")
-          endif()
-        endif()
-      endforeach()
-    endforeach()
-  endif()
   set(_cpkt_runtime_policy_name local_executable_runtime_policy)
   if(NOT CPKT_GROUP STREQUAL "core")
     string(APPEND _cpkt_runtime_policy_name "_${CPKT_GROUP}")
@@ -249,7 +237,7 @@ function(cpkt_register_local_runtime_checks)
 endfunction()
 if(NOT CPKT_DEPENDENCY_PRODUCER)
   add_custom_target(cpkt_operation_guard
-    COMMAND "${CPKT_OPERATION_PYTHON}" "${CMAKE_SOURCE_DIR}/scripts/cpkt_operation.py"
+    COMMAND bash "${CMAKE_SOURCE_DIR}/scripts/operation.sh"
       --root "${CMAKE_SOURCE_DIR}" --group "${CPKT_GROUP}" --check
     VERBATIM)
   cmake_language(DEFER CALL cpkt_validate_owned_graph)
@@ -288,10 +276,10 @@ set(CPKT_MINIAUDIO_VERSION "0.11.25" CACHE STRING "Pinned miniaudio release.")
 set(CPKT_WHISPER_VERSION "v1.9.4" CACHE STRING "Pinned whisper.cpp release.")
 set(CPKT_OPEN62541_VERSION "1.5.8" CACHE STRING "Pinned open62541 release.")
 set(CPKT_OPEN62541_PATCHSET "mqtt-prefix-packet-headers-crypto-logging-24" CACHE STRING "cpkt open62541 patchset identity." FORCE)
-set(CPKT_AUDIO_ABI_VERSION "0" CACHE STRING "Audio facade ABI major. Do not bump without maintainer approval.")
-set(CPKT_SUS_ABI_VERSION "0" CACHE STRING "Susurro/whisper facade ABI major. Do not bump without maintainer approval.")
-set(CPKT_OPCUA_ABI_VERSION "0" CACHE STRING "OPC UA facade ABI major. Do not bump without maintainer approval.")
-set(CPKT_PDF_ABI_VERSION "0" CACHE STRING "PDF facade ABI major. Do not bump without maintainer approval.")
+# ABI declarations live in cmake/CpktABIVersions.cmake.
+# ABI declarations live in cmake/CpktABIVersions.cmake.
+# ABI declarations live in cmake/CpktABIVersions.cmake.
+# ABI declarations live in cmake/CpktABIVersions.cmake.
 if(NOT CPKT_SUS_CPU_ONLY)
   message(FATAL_ERROR "CPKT_SUS_CPU_ONLY=OFF is reserved for a later GPU-backend packaging phase")
 endif()
@@ -443,22 +431,13 @@ if(CPKT_ALLOW_DEPENDENCY_ROOT_OVERRIDE
     AND _cpkt_dependency_build_root_explicit)
   set(CPKT_DEPENDENCY_BUILD_ROOT_LIFECYCLE_OWNED OFF)
 endif()
-set(_cpkt_inventory_arguments "")
-if(NOT CPKT_BUILD_TESTS)
-  list(APPEND _cpkt_inventory_arguments --no-tests)
-endif()
-execute_process(COMMAND "${CPKT_OPERATION_PYTHON}" "${CMAKE_SOURCE_DIR}/scripts/cpkt_inventory_cli.py"
-  --root "${CMAKE_SOURCE_DIR}" --group "${CPKT_GROUP}" --closure --cmake ${_cpkt_inventory_arguments}
-  OUTPUT_VARIABLE CPKT_ACTIVE_COMPONENTS OUTPUT_STRIP_TRAILING_WHITESPACE
-  RESULT_VARIABLE _cpkt_inventory_status)
-if(NOT _cpkt_inventory_status EQUAL 0)
-  message(FATAL_ERROR "Invalid component inventory")
-endif()
+include(cmake/CpktComponentInventory.cmake)
+cpkt_select_components(CPKT_ACTIVE_COMPONENTS)
 if(CPKT_GROUP MATCHES "^(db|misc)$")
   if(NOT CPKT_PREREQUISITE_CONFIGURATION)
     set(CPKT_PREREQUISITE_CONFIGURATION "${CMAKE_BUILD_TYPE}")
   endif()
-  execute_process(COMMAND "${CPKT_OPERATION_PYTHON}" "${CMAKE_SOURCE_DIR}/scripts/cpkt_receipt_cli.py"
+  execute_process(COMMAND "${CPKT_HOST_PYTHON_EXECUTABLE}" "${CMAKE_SOURCE_DIR}/scripts/cpkt_receipt_cli.py"
       --root "${CMAKE_SOURCE_DIR}" --group "${CPKT_GROUP}" --target "${CPKT_TARGET_ID}"
       --configuration "${CPKT_PREREQUISITE_CONFIGURATION}" --preset "$ENV{CPKT_PRESET}"
       RESULT_VARIABLE _core_status)
@@ -753,18 +732,16 @@ elseif(CMAKE_SYSTEM_NAME STREQUAL "Linux")
   cpkt_group_set_target_properties(cpkt_pdf_shared PROPERTIES BUILD_RPATH "$ORIGIN" INSTALL_RPATH "$ORIGIN" BUILD_WITH_INSTALL_RPATH ON)
 endif()
 if(CPKT_BUILD_TESTS)
+  include(cmake/CpktPreflightTests.cmake)
+  cpkt_register_preflight_tests("${CMAKE_SOURCE_DIR}")
   if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
-    cpkt_group_add_test(NAME sdk_runtime_loader
-        COMMAND "${Python3_EXECUTABLE}" "${CMAKE_SOURCE_DIR}/tests/sdk_runtime_loader_test.py"
-          --scratch "${CMAKE_BINARY_DIR}" --target "${CPKT_TARGET_ID}"
-          --compiler "${CMAKE_C_COMPILER}" --readelf "${CMAKE_READELF}"
-          --sysroot "${CMAKE_SYSROOT}")
+    # Fixture registration is shared in CpktPreflightTests.cmake.
     cpkt_group_set_tests_properties(sdk_runtime_loader PROPERTIES LABELS "packaging;smoke" TIMEOUT 30)
   endif()
   cpkt_group_add_test(NAME package_isolation_build
-      COMMAND "${CPKT_OPERATION_PYTHON}" "${CMAKE_SOURCE_DIR}/tests/package_isolation_build_test.py")
+      COMMAND "${CPKT_HOST_PYTHON_EXECUTABLE}" "${CMAKE_SOURCE_DIR}/tests/package_isolation_build_test.py")
   cpkt_group_add_test(NAME package_producer_reuse
-      COMMAND "${CPKT_OPERATION_PYTHON}" "${CMAKE_SOURCE_DIR}/tests/package_producer_reuse_test.py")
+      COMMAND "${CPKT_HOST_PYTHON_EXECUTABLE}" "${CMAKE_SOURCE_DIR}/tests/package_producer_reuse_test.py")
   cpkt_group_add_test(NAME selected_test_executables
       COMMAND "${Python3_EXECUTABLE}"
         "${CMAKE_SOURCE_DIR}/tests/selected_test_executables_test.py"
@@ -1176,12 +1153,7 @@ if(CPKT_BUILD_TESTS)
     foreach(_cpkt_runner_argument IN LISTS CPKT_TEST_EXECUTABLE_PREFIX)
       list(APPEND _cpkt_curl_harness_runner "--runner=${_cpkt_runner_argument}")
     endforeach()
-    cpkt_group_add_test(
-          NAME patch_series_portability
-          COMMAND "${CMAKE_COMMAND}"
-            "-DCPKT_SOURCE_DIR=${CMAKE_SOURCE_DIR}"
-            "-DCPKT_PATCH_TEST_ROOT=${CMAKE_BINARY_DIR}"
-            -P "${CMAKE_SOURCE_DIR}/tests/patch_series_portability_test.cmake")
+    # Fixture registration is shared in CpktPreflightTests.cmake.
     cpkt_group_set_tests_properties(patch_series_portability PROPERTIES LABELS "packaging;smoke" TIMEOUT 30)
     cpkt_group_add_test(NAME opcua_c89_example COMMAND cpkt_opcua_c89_example)
     cpkt_group_add_test(NAME audio_sus_c89_example COMMAND cpkt_audio_sus_c89_example)
@@ -1482,8 +1454,7 @@ if(CPKT_BUILD_TESTS)
               COMMAND
                 "${CMAKE_SOURCE_DIR}/tests/privacy_scan_failure_test.sh")
       cpkt_group_set_tests_properties(privacy_scan_failure PROPERTIES LABELS "packaging" TIMEOUT 30)
-      cpkt_group_add_test(NAME source_archive_verify_failure
-              COMMAND bash "${CMAKE_SOURCE_DIR}/tests/source_archive_verify_failure_test.sh")
+      # Fixture registration is shared in CpktPreflightTests.cmake.
       cpkt_group_set_tests_properties(source_archive_verify_failure PROPERTIES LABELS "packaging;smoke" TIMEOUT 30)
       foreach(_cpkt_install_generator IN ITEMS Ninja Makefiles)
         if(_cpkt_install_generator STREQUAL "Makefiles")
@@ -1491,13 +1462,9 @@ if(CPKT_BUILD_TESTS)
         else()
           set(_cpkt_install_generator_name "Ninja")
         endif()
-        cpkt_group_add_test(NAME dependency_install_order_${_cpkt_install_generator}
-                  COMMAND "${Python3_EXECUTABLE}" "${CMAKE_SOURCE_DIR}/tests/dependency_install_order_test.py"
-                    "${CMAKE_SOURCE_DIR}" "${CMAKE_CURRENT_BINARY_DIR}" "${_cpkt_install_generator_name}")
+        # Fixture registration is shared in CpktPreflightTests.cmake.
         cpkt_group_set_tests_properties(dependency_install_order_${_cpkt_install_generator} PROPERTIES LABELS "packaging;smoke" TIMEOUT 30)
-        cpkt_group_add_test(NAME open62541_openssl_provenance_${_cpkt_install_generator}
-                  COMMAND "${Python3_EXECUTABLE}" "${CMAKE_SOURCE_DIR}/tests/open62541_openssl_provenance_fixture_test.py"
-                    "${CMAKE_SOURCE_DIR}" "${CMAKE_CURRENT_BINARY_DIR}" "${_cpkt_install_generator_name}")
+        # Fixture registration is shared in CpktPreflightTests.cmake.
         cpkt_group_set_tests_properties(open62541_openssl_provenance_${_cpkt_install_generator} PROPERTIES LABELS "packaging;smoke" TIMEOUT 30)
       endforeach()
       cpkt_group_add_test(
@@ -1564,9 +1531,9 @@ if(CPKT_BUILD_TESTS)
                 "${CMAKE_SOURCE_DIR}")
       cpkt_group_set_tests_properties(fuzz_toolchain_policy PROPERTIES LABELS "fuzz;smoke" TIMEOUT 30)
       cpkt_group_add_test(NAME package_integration_contracts
-              COMMAND "${CPKT_OPERATION_PYTHON}" "${CMAKE_SOURCE_DIR}/tests/package_integration_contract_test.py")
+              COMMAND "${CPKT_HOST_PYTHON_EXECUTABLE}" "${CMAKE_SOURCE_DIR}/tests/package_integration_contract_test.py")
       cpkt_group_add_test(NAME github_actions_contracts
-              COMMAND "${CPKT_OPERATION_PYTHON}" "${CMAKE_SOURCE_DIR}/tests/github_actions_contract_test.py")
+              COMMAND "${CPKT_HOST_PYTHON_EXECUTABLE}" "${CMAKE_SOURCE_DIR}/tests/github_actions_contract_test.py")
       cpkt_group_add_test(
               NAME lifecycle_surface
               COMMAND
@@ -1646,7 +1613,7 @@ endif()
 include(cmake/CpktPackage.cmake)
 if(CPKT_BUILD_TESTS)
   cpkt_group_add_test(NAME repository_boundary
-      COMMAND "${CPKT_OPERATION_PYTHON}" "${CMAKE_SOURCE_DIR}/tests/repository_boundary_test.py")
+      COMMAND "${CPKT_HOST_PYTHON_EXECUTABLE}" "${CMAKE_SOURCE_DIR}/tests/repository_boundary_test.py")
 endif()
 
 # Each linked shared module proves an owned static native/facade archive is PIC.
