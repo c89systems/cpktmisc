@@ -86,8 +86,8 @@
   Darwin release proof uses local osxcross and final-artifact inspection. Hosted
   native diagnostics are optional, explicitly dispatched on an existing remote
   ref; never push a branch or tag to obtain CI feedback.
-- Run `make finalize-slice` after each implementation iteration. It formats
-  project-owned C and headers, runs the debug and clangd checks, then asserts
-  that formatting is clean.
+- During implementation, run bounded verification for each resolved issue.
+  After the last implementation edit, run `make finalize-slice`, then the
+  remaining full-suite and release-matrix gates. Reuse matching passed checks.
 - After the last edit and before every commit, run `make format-check`. If it
   fails, run `make format`, repeat affected verification, and check again.

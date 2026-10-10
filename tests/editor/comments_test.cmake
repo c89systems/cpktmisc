@@ -1,6 +1,7 @@
 cmake_minimum_required(VERSION 3.21)
 file(GLOB headers "${CPKT_SOURCE}/include/cpkt/*.h")
-file(GLOB generated "${CPKT_BUILD}/generated/opcua/cpkt/*.h")
+file(GLOB generated "${CPKT_BUILD}/generated/opcua/cpkt/*.h"
+  "${CPKT_BUILD}/generated/*/include/cpkt/*.h")
 list(APPEND headers ${generated})
 set(comment "/\\*([^*]|\\*+[^*/])*\\*+/")
 set(documented "(/\\*\\*([^*]|\\*+[^*/])*\\*+/[ \t\n]*)+[^;{}]*;")

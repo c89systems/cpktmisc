@@ -20,6 +20,9 @@ foreach(index RANGE 0 ${last})
 endforeach()
 file(GLOB_RECURSE headers CONFIGURE_DEPENDS LIST_DIRECTORIES FALSE
   "${CPKT_SOURCE}/include/*" "${CPKT_BUILD}/generated/opcua/cpkt/*")
+file(GLOB_RECURSE codec_headers CONFIGURE_DEPENDS LIST_DIRECTORIES FALSE
+  "${CPKT_BUILD}/generated/*/include/cpkt/*.h")
+list(APPEND headers ${codec_headers})
 add_custom_command(OUTPUT "${CMAKE_BINARY_DIR}/editor.passed"
   COMMAND "${CMAKE_COMMAND}" -E rm -f "${CMAKE_BINARY_DIR}/editor.passed"
   COMMAND "${CMAKE_CTEST_COMMAND}" --test-dir "${CMAKE_BINARY_DIR}" --output-on-failure --stop-on-failure --no-tests=error

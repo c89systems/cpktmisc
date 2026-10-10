@@ -18,7 +18,8 @@
           "docs/opcua-c89-facade-spec.md",
           "docs/audio-sus-facade-spec.md",
           "docs/pdf-c89-facade.md",
-          "docs/sus-model-catalog.tsv"
+          "docs/sus-model-catalog.tsv",
+          "docs/compression-facades.md"
         ],
         "examples": [
           "examples/audio-live-vox-c89/CMakeLists.txt",
@@ -50,6 +51,10 @@
           {
             "source": "docs/sus-model-catalog.tsv",
             "path": "share/cpkt/sus-model-catalog.tsv"
+          },
+          {
+            "source": "include/cpkt/compression_types.h",
+            "path": "include/cpkt/compression_types.h"
           }
         ]
       },
@@ -1761,6 +1766,553 @@
         "version_variable": "CPKT_CMOCKA_VERSION"
       },
       "external": "cpkt"
+    },
+    "libffi": {
+      "group": "misc",
+      "directory": "libffi",
+      "dependencies": [],
+      "recipe_functions": [
+        "cpkt_add_libffi"
+      ],
+      "recipe_inputs": [
+        "cmake/dependencies/libffi.cmake",
+        "cmake/dependencies/codecs-common.cmake",
+        "cmake/dependencies/darwin-codec-identities.cmake",
+        "cmake/normalize_darwin_dylib_install_names.cmake"
+      ],
+      "variants": [
+        "static",
+        "shared"
+      ],
+      "test_dependencies": [],
+      "notices": [
+        "LICENSE"
+      ],
+      "payload": {
+        "install_prefix": "install",
+        "headers": [
+          "include/**"
+        ],
+        "libraries": [
+          "lib/**"
+        ],
+        "metadata": [
+          "lib/pkgconfig/**",
+          "lib/cmake/**"
+        ]
+      },
+      "helpers": [
+        "cpkt_add_libffi",
+        "cpkt_codec_cmake",
+        "cpkt_codec_autotools",
+        "cpkt_codec_import"
+      ],
+      "package": {
+        "cmake": [
+          "CpktFfi"
+        ],
+        "pkgconfig": [
+          "libffi"
+        ],
+        "license": "src/LICENSE",
+        "facades": [
+          {
+            "target": "cpkt_ffi",
+            "cmake": "CpktFfiFacade",
+            "pkgconfig": "cpkt-ffi",
+            "headers": [
+              "@generated"
+            ],
+            "generated": "ffi",
+            "export_catalog": "@generated/ffi/exports.txt",
+            "abi_version_variable": "CPKT_FFI_ABI_VERSION"
+          }
+        ],
+        "owned_patterns": [
+          "include/ffi*.h",
+          "lib/libffi*",
+          "include/cpkt/ffi.h"
+        ],
+        "version_variable": "CPKT_LIBFFI_VERSION"
+      },
+      "recipe_file": "cmake/dependencies/libffi.cmake"
+    },
+    "libyaml": {
+      "group": "misc",
+      "directory": "libyaml",
+      "dependencies": [],
+      "recipe_functions": [
+        "cpkt_add_libyaml"
+      ],
+      "recipe_inputs": [
+        "cmake/dependencies/libyaml.cmake",
+        "cmake/dependencies/codecs-common.cmake",
+        "cmake/dependencies/darwin-codec-identities.cmake",
+        "cmake/normalize_darwin_dylib_install_names.cmake"
+      ],
+      "variants": [
+        "static",
+        "shared"
+      ],
+      "test_dependencies": [],
+      "notices": [
+        "LICENSE"
+      ],
+      "payload": {
+        "install_prefix": "install",
+        "headers": [
+          "include/**"
+        ],
+        "libraries": [
+          "lib/**"
+        ],
+        "metadata": [
+          "lib/pkgconfig/**",
+          "lib/cmake/**"
+        ]
+      },
+      "helpers": [
+        "cpkt_add_libyaml",
+        "cpkt_codec_cmake",
+        "cpkt_codec_autotools",
+        "cpkt_codec_import"
+      ],
+      "package": {
+        "cmake": [
+          "CpktYaml"
+        ],
+        "pkgconfig": [
+          "yaml-0.1"
+        ],
+        "license": "src/License",
+        "facades": [],
+        "owned_patterns": [
+          "include/yaml.h",
+          "lib/libyaml*"
+        ],
+        "version_variable": "CPKT_LIBYAML_VERSION"
+      },
+      "recipe_file": "cmake/dependencies/libyaml.cmake"
+    },
+    "bzip2": {
+      "group": "misc",
+      "directory": "bzip2",
+      "dependencies": [],
+      "recipe_functions": [
+        "cpkt_add_bzip2"
+      ],
+      "recipe_inputs": [
+        "cmake/dependencies/bzip2.cmake",
+        "cmake/dependencies/codecs-common.cmake",
+        "cmake/upstream/bzip2/CMakeLists.txt"
+      ],
+      "variants": [
+        "static",
+        "shared"
+      ],
+      "test_dependencies": [],
+      "notices": [
+        "LICENSE"
+      ],
+      "payload": {
+        "install_prefix": "install",
+        "headers": [
+          "include/**"
+        ],
+        "libraries": [
+          "lib/**"
+        ],
+        "metadata": [
+          "lib/pkgconfig/**",
+          "lib/cmake/**"
+        ]
+      },
+      "helpers": [
+        "cpkt_add_bzip2",
+        "cpkt_codec_cmake",
+        "cpkt_codec_autotools",
+        "cpkt_codec_import"
+      ],
+      "package": {
+        "cmake": [
+          "CpktBzip2"
+        ],
+        "pkgconfig": [
+          "bzip2"
+        ],
+        "license": "src/LICENSE",
+        "facades": [],
+        "owned_patterns": [
+          "include/bzlib.h",
+          "lib/libbz2*"
+        ],
+        "version_variable": "CPKT_BZIP2_VERSION"
+      },
+      "recipe_file": "cmake/dependencies/bzip2.cmake"
+    },
+    "xz": {
+      "group": "misc",
+      "directory": "xz",
+      "dependencies": [],
+      "recipe_functions": [
+        "cpkt_add_xz"
+      ],
+      "recipe_inputs": [
+        "cmake/dependencies/xz.cmake",
+        "cmake/dependencies/codecs-common.cmake"
+      ],
+      "variants": [
+        "static",
+        "shared"
+      ],
+      "test_dependencies": [],
+      "notices": [
+        "LICENSE"
+      ],
+      "payload": {
+        "install_prefix": "install",
+        "headers": [
+          "include/**"
+        ],
+        "libraries": [
+          "lib/**"
+        ],
+        "metadata": [
+          "lib/pkgconfig/**",
+          "lib/cmake/**"
+        ]
+      },
+      "helpers": [
+        "cpkt_add_xz",
+        "cpkt_codec_cmake",
+        "cpkt_codec_autotools",
+        "cpkt_codec_import"
+      ],
+      "package": {
+        "cmake": [
+          "CpktLzma"
+        ],
+        "pkgconfig": [
+          "liblzma"
+        ],
+        "license": "src/COPYING",
+        "facades": [
+          {
+            "target": "cpkt_lzma",
+            "cmake": "CpktLzmaFacade",
+            "pkgconfig": "cpkt-lzma",
+            "headers": [
+              "@generated"
+            ],
+            "generated": "lzma",
+            "export_catalog": "@generated/lzma/exports.txt",
+            "abi_version_variable": "CPKT_LZMA_ABI_VERSION"
+          }
+        ],
+        "owned_patterns": [
+          "include/lzma*",
+          "lib/liblzma*",
+          "include/cpkt/lzma.h"
+        ],
+        "version_variable": "CPKT_XZ_VERSION",
+        "extra_licenses": [
+          "src/COPYING.0BSD",
+          "src/COPYING.GPLv2",
+          "src/COPYING.GPLv3",
+          "src/COPYING.LGPLv2.1"
+        ]
+      },
+      "recipe_file": "cmake/dependencies/xz.cmake"
+    },
+    "lz4": {
+      "group": "misc",
+      "directory": "lz4",
+      "dependencies": [],
+      "recipe_functions": [
+        "cpkt_add_lz4"
+      ],
+      "recipe_inputs": [
+        "cmake/dependencies/lz4.cmake",
+        "cmake/dependencies/codecs-common.cmake"
+      ],
+      "variants": [
+        "static",
+        "shared"
+      ],
+      "test_dependencies": [],
+      "notices": [
+        "LICENSE"
+      ],
+      "payload": {
+        "install_prefix": "install",
+        "headers": [
+          "include/**"
+        ],
+        "libraries": [
+          "lib/**"
+        ],
+        "metadata": [
+          "lib/pkgconfig/**",
+          "lib/cmake/**"
+        ]
+      },
+      "helpers": [
+        "cpkt_add_lz4",
+        "cpkt_codec_cmake",
+        "cpkt_codec_autotools",
+        "cpkt_codec_import"
+      ],
+      "package": {
+        "cmake": [
+          "CpktLz4"
+        ],
+        "pkgconfig": [
+          "liblz4"
+        ],
+        "license": "src/lib/LICENSE",
+        "facades": [
+          {
+            "target": "cpkt_lz4",
+            "cmake": "CpktLz4Facade",
+            "pkgconfig": "cpkt-lz4",
+            "headers": [
+              "@generated"
+            ],
+            "generated": "lz4",
+            "export_catalog": "@generated/lz4/exports.txt",
+            "abi_version_variable": "CPKT_LZ4_ABI_VERSION",
+            "forbidden_needed": [
+              "liblz4"
+            ]
+          }
+        ],
+        "owned_patterns": [
+          "include/lz4*.h",
+          "lib/liblz4*",
+          "include/cpkt/lz4.h"
+        ],
+        "version_variable": "CPKT_LZ4_VERSION"
+      },
+      "recipe_file": "cmake/dependencies/lz4.cmake"
+    },
+    "lzo": {
+      "group": "misc",
+      "directory": "lzo",
+      "dependencies": [],
+      "recipe_functions": [
+        "cpkt_add_lzo"
+      ],
+      "recipe_inputs": [
+        "cmake/dependencies/lzo.cmake",
+        "cmake/dependencies/codecs-common.cmake"
+      ],
+      "variants": [
+        "static",
+        "shared"
+      ],
+      "test_dependencies": [],
+      "notices": [
+        "LICENSE"
+      ],
+      "payload": {
+        "install_prefix": "install",
+        "headers": [
+          "include/**"
+        ],
+        "libraries": [
+          "lib/**"
+        ],
+        "metadata": [
+          "lib/pkgconfig/**",
+          "lib/cmake/**"
+        ]
+      },
+      "helpers": [
+        "cpkt_add_lzo",
+        "cpkt_codec_cmake",
+        "cpkt_codec_autotools",
+        "cpkt_codec_import"
+      ],
+      "package": {
+        "cmake": [
+          "CpktLzo"
+        ],
+        "pkgconfig": [
+          "lzo2"
+        ],
+        "license": "src/COPYING",
+        "facades": [
+          {
+            "target": "cpkt_lzo",
+            "cmake": "CpktLzoFacade",
+            "pkgconfig": "cpkt-lzo",
+            "headers": [
+              "@generated"
+            ],
+            "generated": "lzo",
+            "export_catalog": "@generated/lzo/exports.txt",
+            "abi_version_variable": "CPKT_LZO_ABI_VERSION",
+            "forbidden_needed": [
+              "liblzo2"
+            ]
+          }
+        ],
+        "owned_patterns": [
+          "include/lzo/**",
+          "lib/liblzo2*",
+          "include/cpkt/lzo.h"
+        ],
+        "version_variable": "CPKT_LZO_VERSION"
+      },
+      "recipe_file": "cmake/dependencies/lzo.cmake"
+    },
+    "zstd": {
+      "group": "misc",
+      "directory": "zstd",
+      "dependencies": [],
+      "recipe_functions": [
+        "cpkt_add_zstd"
+      ],
+      "recipe_inputs": [
+        "cmake/dependencies/zstd.cmake",
+        "cmake/dependencies/codecs-common.cmake"
+      ],
+      "variants": [
+        "static",
+        "shared"
+      ],
+      "test_dependencies": [],
+      "notices": [
+        "LICENSE"
+      ],
+      "payload": {
+        "install_prefix": "install",
+        "headers": [
+          "include/**"
+        ],
+        "libraries": [
+          "lib/**"
+        ],
+        "metadata": [
+          "lib/pkgconfig/**",
+          "lib/cmake/**"
+        ]
+      },
+      "helpers": [
+        "cpkt_add_zstd",
+        "cpkt_codec_cmake",
+        "cpkt_codec_autotools",
+        "cpkt_codec_import"
+      ],
+      "package": {
+        "cmake": [
+          "zstd"
+        ],
+        "pkgconfig": [
+          "libzstd"
+        ],
+        "license": "src/LICENSE",
+        "facades": [
+          {
+            "target": "cpkt_zstd",
+            "cmake": "CpktZstdFacade",
+            "pkgconfig": "cpkt-zstd",
+            "headers": [
+              "@generated"
+            ],
+            "generated": "zstd",
+            "export_catalog": "@generated/zstd/exports.txt",
+            "abi_version_variable": "CPKT_ZSTD_ABI_VERSION",
+            "forbidden_needed": [
+              "libzstd"
+            ]
+          }
+        ],
+        "owned_patterns": [
+          "include/z*.h",
+          "lib/libzstd*",
+          "include/cpkt/zstd.h"
+        ],
+        "version_variable": "CPKT_ZSTD_VERSION"
+      },
+      "recipe_file": "cmake/dependencies/zstd.cmake"
+    },
+    "libarchive": {
+      "group": "misc",
+      "directory": "libarchive",
+      "dependencies": [
+        "bzip2",
+        "xz",
+        "lz4",
+        "lzo",
+        "zstd",
+        "zlib",
+        "openssl",
+        "libxml2"
+      ],
+      "recipe_functions": [
+        "cpkt_add_libarchive"
+      ],
+      "recipe_inputs": [
+        "cmake/dependencies/libarchive.cmake",
+        "cmake/dependencies/codecs-common.cmake"
+      ],
+      "variants": [
+        "static",
+        "shared"
+      ],
+      "test_dependencies": [],
+      "notices": [
+        "LICENSE"
+      ],
+      "payload": {
+        "install_prefix": "install",
+        "headers": [
+          "include/**"
+        ],
+        "libraries": [
+          "lib/**"
+        ],
+        "metadata": [
+          "lib/pkgconfig/**",
+          "lib/cmake/**"
+        ]
+      },
+      "helpers": [
+        "cpkt_add_libarchive",
+        "cpkt_codec_cmake",
+        "cpkt_codec_autotools",
+        "cpkt_codec_import"
+      ],
+      "package": {
+        "cmake": [
+          "LibArchive"
+        ],
+        "pkgconfig": [
+          "libarchive"
+        ],
+        "license": "src/COPYING",
+        "facades": [
+          {
+            "target": "cpkt_archive",
+            "cmake": "CpktArchiveFacade",
+            "pkgconfig": "cpkt-archive",
+            "headers": [
+              "@generated"
+            ],
+            "generated": "archive",
+            "export_catalog": "@generated/archive/exports.txt",
+            "abi_version_variable": "CPKT_ARCHIVE_ABI_VERSION"
+          }
+        ],
+        "owned_patterns": [
+          "include/archive*.h",
+          "lib/libarchive*",
+          "include/cpkt/archive.h"
+        ],
+        "version_variable": "CPKT_LIBARCHIVE_VERSION"
+      },
+      "recipe_file": "cmake/dependencies/libarchive.cmake"
     }
   },
   "targets": {
@@ -2520,6 +3072,442 @@
       "source_inputs": [
         "scripts/darwin-smoke-package.sh",
         "cmake/smoke-metadata.cmake"
+      ]
+    },
+    "cpkt_ffi_sources": {
+      "group": "misc",
+      "kind": "add_custom_target",
+      "public": false,
+      "requires": [
+        "core"
+      ],
+      "source_inputs": [
+        "tools/generate_compression_facade.py",
+        "cmake/CompressionFacadeGeneration.cmake",
+        "cmake/generate_facade_exports.cmake"
+      ]
+    },
+    "cpkt_ffi_static": {
+      "group": "misc",
+      "kind": "add_library",
+      "public": true,
+      "requires": [
+        "core"
+      ],
+      "source_inputs": [
+        "tools/generate_compression_facade.py"
+      ]
+    },
+    "cpkt_ffi_facade_static_test": {
+      "group": "misc",
+      "kind": "add_executable",
+      "public": false,
+      "requires": [
+        "core"
+      ],
+      "source_inputs": [
+        "tests/ffi_facade_test.c"
+      ]
+    },
+    "cpkt_ffi_shared": {
+      "group": "misc",
+      "kind": "add_library",
+      "public": true,
+      "requires": [
+        "core"
+      ],
+      "source_inputs": [
+        "tools/generate_compression_facade.py"
+      ]
+    },
+    "cpkt_ffi_facade_shared_test": {
+      "group": "misc",
+      "kind": "add_executable",
+      "public": false,
+      "requires": [
+        "core"
+      ],
+      "source_inputs": [
+        "tests/ffi_facade_test.c"
+      ]
+    },
+    "cpkt_archive_sources": {
+      "group": "misc",
+      "kind": "add_custom_target",
+      "public": false,
+      "requires": [
+        "core"
+      ],
+      "source_inputs": [
+        "tools/generate_compression_facade.py",
+        "cmake/CompressionFacadeGeneration.cmake",
+        "cmake/generate_facade_exports.cmake"
+      ]
+    },
+    "cpkt_archive_static": {
+      "group": "misc",
+      "kind": "add_library",
+      "public": true,
+      "requires": [
+        "core"
+      ],
+      "source_inputs": [
+        "tools/generate_compression_facade.py"
+      ]
+    },
+    "cpkt_archive_facade_static_test": {
+      "group": "misc",
+      "kind": "add_executable",
+      "public": false,
+      "requires": [
+        "core"
+      ],
+      "source_inputs": [
+        "tests/archive_facade_test.c"
+      ]
+    },
+    "cpkt_archive_shared": {
+      "group": "misc",
+      "kind": "add_library",
+      "public": true,
+      "requires": [
+        "core"
+      ],
+      "source_inputs": [
+        "tools/generate_compression_facade.py"
+      ]
+    },
+    "cpkt_archive_facade_shared_test": {
+      "group": "misc",
+      "kind": "add_executable",
+      "public": false,
+      "requires": [
+        "core"
+      ],
+      "source_inputs": [
+        "tests/archive_facade_test.c"
+      ]
+    },
+    "cpkt_zstd_sources": {
+      "group": "misc",
+      "kind": "add_custom_target",
+      "public": false,
+      "requires": [
+        "core"
+      ],
+      "source_inputs": [
+        "tools/generate_compression_facade.py",
+        "cmake/CompressionFacadeGeneration.cmake",
+        "cmake/generate_facade_exports.cmake"
+      ]
+    },
+    "cpkt_zstd_static": {
+      "group": "misc",
+      "kind": "add_library",
+      "public": true,
+      "requires": [
+        "core"
+      ],
+      "source_inputs": [
+        "tools/generate_compression_facade.py"
+      ]
+    },
+    "cpkt_zstd_facade_static_test": {
+      "group": "misc",
+      "kind": "add_executable",
+      "public": false,
+      "requires": [
+        "core"
+      ],
+      "source_inputs": [
+        "tests/zstd_facade_test.c"
+      ]
+    },
+    "cpkt_zstd_shared": {
+      "group": "misc",
+      "kind": "add_library",
+      "public": true,
+      "requires": [
+        "core"
+      ],
+      "source_inputs": [
+        "tools/generate_compression_facade.py"
+      ]
+    },
+    "cpkt_zstd_facade_shared_test": {
+      "group": "misc",
+      "kind": "add_executable",
+      "public": false,
+      "requires": [
+        "core"
+      ],
+      "source_inputs": [
+        "tests/zstd_facade_test.c"
+      ]
+    },
+    "cpkt_lzma_sources": {
+      "group": "misc",
+      "kind": "add_custom_target",
+      "public": false,
+      "requires": [
+        "core"
+      ],
+      "source_inputs": [
+        "tools/generate_compression_facade.py",
+        "cmake/CompressionFacadeGeneration.cmake",
+        "cmake/generate_facade_exports.cmake"
+      ]
+    },
+    "cpkt_lzma_static": {
+      "group": "misc",
+      "kind": "add_library",
+      "public": true,
+      "requires": [
+        "core"
+      ],
+      "source_inputs": [
+        "tools/generate_compression_facade.py"
+      ]
+    },
+    "cpkt_lzma_facade_static_test": {
+      "group": "misc",
+      "kind": "add_executable",
+      "public": false,
+      "requires": [
+        "core"
+      ],
+      "source_inputs": [
+        "tests/lzma_facade_test.c"
+      ]
+    },
+    "cpkt_lzma_shared": {
+      "group": "misc",
+      "kind": "add_library",
+      "public": true,
+      "requires": [
+        "core"
+      ],
+      "source_inputs": [
+        "tools/generate_compression_facade.py"
+      ]
+    },
+    "cpkt_lzma_facade_shared_test": {
+      "group": "misc",
+      "kind": "add_executable",
+      "public": false,
+      "requires": [
+        "core"
+      ],
+      "source_inputs": [
+        "tests/lzma_facade_test.c"
+      ]
+    },
+    "cpkt_lz4_sources": {
+      "group": "misc",
+      "kind": "add_custom_target",
+      "public": false,
+      "requires": [
+        "core"
+      ],
+      "source_inputs": [
+        "tools/generate_compression_facade.py",
+        "cmake/CompressionFacadeGeneration.cmake",
+        "cmake/generate_facade_exports.cmake"
+      ]
+    },
+    "cpkt_lz4_static": {
+      "group": "misc",
+      "kind": "add_library",
+      "public": true,
+      "requires": [
+        "core"
+      ],
+      "source_inputs": [
+        "tools/generate_compression_facade.py"
+      ]
+    },
+    "cpkt_lz4_facade_static_test": {
+      "group": "misc",
+      "kind": "add_executable",
+      "public": false,
+      "requires": [
+        "core"
+      ],
+      "source_inputs": [
+        "tests/lz4_facade_test.c"
+      ]
+    },
+    "cpkt_lz4_shared": {
+      "group": "misc",
+      "kind": "add_library",
+      "public": true,
+      "requires": [
+        "core"
+      ],
+      "source_inputs": [
+        "tools/generate_compression_facade.py"
+      ]
+    },
+    "cpkt_lz4_facade_shared_test": {
+      "group": "misc",
+      "kind": "add_executable",
+      "public": false,
+      "requires": [
+        "core"
+      ],
+      "source_inputs": [
+        "tests/lz4_facade_test.c"
+      ]
+    },
+    "cpkt_lzo_sources": {
+      "group": "misc",
+      "kind": "add_custom_target",
+      "public": false,
+      "requires": [
+        "core"
+      ],
+      "source_inputs": [
+        "tools/generate_compression_facade.py",
+        "cmake/CompressionFacadeGeneration.cmake",
+        "cmake/generate_facade_exports.cmake"
+      ]
+    },
+    "cpkt_lzo_static": {
+      "group": "misc",
+      "kind": "add_library",
+      "public": true,
+      "requires": [
+        "core"
+      ],
+      "source_inputs": [
+        "tools/generate_compression_facade.py"
+      ]
+    },
+    "cpkt_lzo_facade_static_test": {
+      "group": "misc",
+      "kind": "add_executable",
+      "public": false,
+      "requires": [
+        "core"
+      ],
+      "source_inputs": [
+        "tests/lzo_facade_test.c"
+      ]
+    },
+    "cpkt_lzo_shared": {
+      "group": "misc",
+      "kind": "add_library",
+      "public": true,
+      "requires": [
+        "core"
+      ],
+      "source_inputs": [
+        "tools/generate_compression_facade.py"
+      ]
+    },
+    "cpkt_lzo_facade_shared_test": {
+      "group": "misc",
+      "kind": "add_executable",
+      "public": false,
+      "requires": [
+        "core"
+      ],
+      "source_inputs": [
+        "tests/lzo_facade_test.c"
+      ]
+    },
+    "cpkt_native_codecs_static_test": {
+      "group": "misc",
+      "kind": "add_executable",
+      "public": false,
+      "requires": [
+        "core"
+      ],
+      "source_inputs": [
+        "tests/native_codecs_test.c"
+      ]
+    },
+    "cpkt_native_codecs_shared_test": {
+      "group": "misc",
+      "kind": "add_executable",
+      "public": false,
+      "requires": [
+        "core"
+      ],
+      "source_inputs": [
+        "tests/native_codecs_test.c"
+      ]
+    },
+    "cpkt_ffi_layout_test": {
+      "group": "misc",
+      "kind": "add_executable",
+      "public": false,
+      "requires": [
+        "core"
+      ],
+      "source_inputs": [
+        "tests/compression_layout_test.c",
+        "tools/generate_compression_facade.py"
+      ]
+    },
+    "cpkt_archive_layout_test": {
+      "group": "misc",
+      "kind": "add_executable",
+      "public": false,
+      "requires": [
+        "core"
+      ],
+      "source_inputs": [
+        "tests/compression_layout_test.c",
+        "tools/generate_compression_facade.py"
+      ]
+    },
+    "cpkt_zstd_layout_test": {
+      "group": "misc",
+      "kind": "add_executable",
+      "public": false,
+      "requires": [
+        "core"
+      ],
+      "source_inputs": [
+        "tests/compression_layout_test.c",
+        "tools/generate_compression_facade.py"
+      ]
+    },
+    "cpkt_lzma_layout_test": {
+      "group": "misc",
+      "kind": "add_executable",
+      "public": false,
+      "requires": [
+        "core"
+      ],
+      "source_inputs": [
+        "tests/compression_layout_test.c",
+        "tools/generate_compression_facade.py"
+      ]
+    },
+    "cpkt_lz4_layout_test": {
+      "group": "misc",
+      "kind": "add_executable",
+      "public": false,
+      "requires": [
+        "core"
+      ],
+      "source_inputs": [
+        "tests/compression_layout_test.c",
+        "tools/generate_compression_facade.py"
+      ]
+    },
+    "cpkt_lzo_layout_test": {
+      "group": "misc",
+      "kind": "add_executable",
+      "public": false,
+      "requires": [
+        "core"
+      ],
+      "source_inputs": [
+        "tests/compression_layout_test.c",
+        "tools/generate_compression_facade.py"
       ]
     }
   },
@@ -4476,6 +5464,519 @@
         }
       ],
       "target_sensitive": false
+    },
+    "ffi_facade_static": {
+      "group": "misc",
+      "command_inputs": [],
+      "execution": "runtime",
+      "requires": [
+        "core"
+      ],
+      "registrations": [
+        {
+          "name": "ffi_facade_static",
+          "conditions": [
+            "CPKT_BUILD_TESTS",
+            "CPKT_CAN_RUN_TARGET_EXECUTABLES"
+          ]
+        }
+      ],
+      "target_sensitive": false
+    },
+    "ffi_facade_shared": {
+      "group": "misc",
+      "command_inputs": [],
+      "execution": "runtime",
+      "requires": [
+        "core"
+      ],
+      "registrations": [
+        {
+          "name": "ffi_facade_shared",
+          "conditions": [
+            "CPKT_BUILD_TESTS",
+            "CPKT_CAN_RUN_TARGET_EXECUTABLES"
+          ]
+        }
+      ],
+      "target_sensitive": false
+    },
+    "archive_facade_static": {
+      "group": "misc",
+      "command_inputs": [],
+      "execution": "runtime",
+      "requires": [
+        "core"
+      ],
+      "registrations": [
+        {
+          "name": "archive_facade_static",
+          "conditions": [
+            "CPKT_BUILD_TESTS",
+            "CPKT_CAN_RUN_TARGET_EXECUTABLES"
+          ]
+        }
+      ],
+      "target_sensitive": false
+    },
+    "archive_facade_shared": {
+      "group": "misc",
+      "command_inputs": [],
+      "execution": "runtime",
+      "requires": [
+        "core"
+      ],
+      "registrations": [
+        {
+          "name": "archive_facade_shared",
+          "conditions": [
+            "CPKT_BUILD_TESTS",
+            "CPKT_CAN_RUN_TARGET_EXECUTABLES"
+          ]
+        }
+      ],
+      "target_sensitive": false
+    },
+    "zstd_facade_static": {
+      "group": "misc",
+      "command_inputs": [],
+      "execution": "runtime",
+      "requires": [
+        "core"
+      ],
+      "registrations": [
+        {
+          "name": "zstd_facade_static",
+          "conditions": [
+            "CPKT_BUILD_TESTS",
+            "CPKT_CAN_RUN_TARGET_EXECUTABLES"
+          ]
+        }
+      ],
+      "target_sensitive": false
+    },
+    "zstd_facade_shared": {
+      "group": "misc",
+      "command_inputs": [],
+      "execution": "runtime",
+      "requires": [
+        "core"
+      ],
+      "registrations": [
+        {
+          "name": "zstd_facade_shared",
+          "conditions": [
+            "CPKT_BUILD_TESTS",
+            "CPKT_CAN_RUN_TARGET_EXECUTABLES"
+          ]
+        }
+      ],
+      "target_sensitive": false
+    },
+    "lzma_facade_static": {
+      "group": "misc",
+      "command_inputs": [],
+      "execution": "runtime",
+      "requires": [
+        "core"
+      ],
+      "registrations": [
+        {
+          "name": "lzma_facade_static",
+          "conditions": [
+            "CPKT_BUILD_TESTS",
+            "CPKT_CAN_RUN_TARGET_EXECUTABLES"
+          ]
+        }
+      ],
+      "target_sensitive": false
+    },
+    "lzma_facade_shared": {
+      "group": "misc",
+      "command_inputs": [],
+      "execution": "runtime",
+      "requires": [
+        "core"
+      ],
+      "registrations": [
+        {
+          "name": "lzma_facade_shared",
+          "conditions": [
+            "CPKT_BUILD_TESTS",
+            "CPKT_CAN_RUN_TARGET_EXECUTABLES"
+          ]
+        }
+      ],
+      "target_sensitive": false
+    },
+    "lz4_facade_static": {
+      "group": "misc",
+      "command_inputs": [],
+      "execution": "runtime",
+      "requires": [
+        "core"
+      ],
+      "registrations": [
+        {
+          "name": "lz4_facade_static",
+          "conditions": [
+            "CPKT_BUILD_TESTS",
+            "CPKT_CAN_RUN_TARGET_EXECUTABLES"
+          ]
+        }
+      ],
+      "target_sensitive": false
+    },
+    "lz4_facade_shared": {
+      "group": "misc",
+      "command_inputs": [],
+      "execution": "runtime",
+      "requires": [
+        "core"
+      ],
+      "registrations": [
+        {
+          "name": "lz4_facade_shared",
+          "conditions": [
+            "CPKT_BUILD_TESTS",
+            "CPKT_CAN_RUN_TARGET_EXECUTABLES"
+          ]
+        }
+      ],
+      "target_sensitive": false
+    },
+    "lzo_facade_static": {
+      "group": "misc",
+      "command_inputs": [],
+      "execution": "runtime",
+      "requires": [
+        "core"
+      ],
+      "registrations": [
+        {
+          "name": "lzo_facade_static",
+          "conditions": [
+            "CPKT_BUILD_TESTS",
+            "CPKT_CAN_RUN_TARGET_EXECUTABLES"
+          ]
+        }
+      ],
+      "target_sensitive": false
+    },
+    "lzo_facade_shared": {
+      "group": "misc",
+      "command_inputs": [],
+      "execution": "runtime",
+      "requires": [
+        "core"
+      ],
+      "registrations": [
+        {
+          "name": "lzo_facade_shared",
+          "conditions": [
+            "CPKT_BUILD_TESTS",
+            "CPKT_CAN_RUN_TARGET_EXECUTABLES"
+          ]
+        }
+      ],
+      "target_sensitive": false
+    },
+    "native_codecs_static": {
+      "group": "misc",
+      "command_inputs": [],
+      "execution": "runtime",
+      "requires": [
+        "core"
+      ],
+      "registrations": [
+        {
+          "name": "native_codecs_static",
+          "conditions": [
+            "CPKT_BUILD_TESTS",
+            "CPKT_CAN_RUN_TARGET_EXECUTABLES"
+          ]
+        }
+      ],
+      "target_sensitive": false
+    },
+    "native_codecs_shared": {
+      "group": "misc",
+      "command_inputs": [],
+      "execution": "runtime",
+      "requires": [
+        "core"
+      ],
+      "registrations": [
+        {
+          "name": "native_codecs_shared",
+          "conditions": [
+            "CPKT_BUILD_TESTS",
+            "CPKT_CAN_RUN_TARGET_EXECUTABLES"
+          ]
+        }
+      ],
+      "target_sensitive": false
+    },
+    "compression_api_ffi": {
+      "group": "misc",
+      "command_inputs": [
+        "tests/compression_api_test.cmake"
+      ],
+      "execution": "host",
+      "requires": [
+        "core"
+      ],
+      "registrations": [
+        {
+          "name": "compression_api_ffi",
+          "conditions": [
+            "CPKT_BUILD_TESTS"
+          ]
+        }
+      ],
+      "target_sensitive": true
+    },
+    "compression_api_archive": {
+      "group": "misc",
+      "command_inputs": [
+        "tests/compression_api_test.cmake"
+      ],
+      "execution": "host",
+      "requires": [
+        "core"
+      ],
+      "registrations": [
+        {
+          "name": "compression_api_archive",
+          "conditions": [
+            "CPKT_BUILD_TESTS"
+          ]
+        }
+      ],
+      "target_sensitive": true
+    },
+    "compression_api_zstd": {
+      "group": "misc",
+      "command_inputs": [
+        "tests/compression_api_test.cmake"
+      ],
+      "execution": "host",
+      "requires": [
+        "core"
+      ],
+      "registrations": [
+        {
+          "name": "compression_api_zstd",
+          "conditions": [
+            "CPKT_BUILD_TESTS"
+          ]
+        }
+      ],
+      "target_sensitive": true
+    },
+    "compression_api_lzma": {
+      "group": "misc",
+      "command_inputs": [
+        "tests/compression_api_test.cmake"
+      ],
+      "execution": "host",
+      "requires": [
+        "core"
+      ],
+      "registrations": [
+        {
+          "name": "compression_api_lzma",
+          "conditions": [
+            "CPKT_BUILD_TESTS"
+          ]
+        }
+      ],
+      "target_sensitive": true
+    },
+    "compression_api_lz4": {
+      "group": "misc",
+      "command_inputs": [
+        "tests/compression_api_test.cmake"
+      ],
+      "execution": "host",
+      "requires": [
+        "core"
+      ],
+      "registrations": [
+        {
+          "name": "compression_api_lz4",
+          "conditions": [
+            "CPKT_BUILD_TESTS"
+          ]
+        }
+      ],
+      "target_sensitive": true
+    },
+    "compression_api_lzo": {
+      "group": "misc",
+      "command_inputs": [
+        "tests/compression_api_test.cmake"
+      ],
+      "execution": "host",
+      "requires": [
+        "core"
+      ],
+      "registrations": [
+        {
+          "name": "compression_api_lzo",
+          "conditions": [
+            "CPKT_BUILD_TESTS"
+          ]
+        }
+      ],
+      "target_sensitive": true
+    },
+    "linked_toolchain_probes": {
+      "group": "misc",
+      "command_inputs": [
+        "tests/linked_toolchain_probes_test.cmake"
+      ],
+      "execution": "host",
+      "requires": [
+        "core"
+      ],
+      "registrations": [
+        {
+          "name": "linked_toolchain_probes",
+          "conditions": [
+            "CPKT_BUILD_TESTS"
+          ]
+        }
+      ],
+      "target_sensitive": true
+    },
+    "compression_layout_ffi": {
+      "group": "misc",
+      "command_inputs": [],
+      "execution": "runtime",
+      "requires": [
+        "core"
+      ],
+      "registrations": [
+        {
+          "name": "compression_layout_ffi",
+          "conditions": [
+            "CPKT_BUILD_TESTS",
+            "CPKT_CAN_RUN_TARGET_EXECUTABLES"
+          ]
+        }
+      ],
+      "target_sensitive": false
+    },
+    "compression_layout_archive": {
+      "group": "misc",
+      "command_inputs": [],
+      "execution": "runtime",
+      "requires": [
+        "core"
+      ],
+      "registrations": [
+        {
+          "name": "compression_layout_archive",
+          "conditions": [
+            "CPKT_BUILD_TESTS",
+            "CPKT_CAN_RUN_TARGET_EXECUTABLES"
+          ]
+        }
+      ],
+      "target_sensitive": false
+    },
+    "compression_layout_zstd": {
+      "group": "misc",
+      "command_inputs": [],
+      "execution": "runtime",
+      "requires": [
+        "core"
+      ],
+      "registrations": [
+        {
+          "name": "compression_layout_zstd",
+          "conditions": [
+            "CPKT_BUILD_TESTS",
+            "CPKT_CAN_RUN_TARGET_EXECUTABLES"
+          ]
+        }
+      ],
+      "target_sensitive": false
+    },
+    "compression_layout_lzma": {
+      "group": "misc",
+      "command_inputs": [],
+      "execution": "runtime",
+      "requires": [
+        "core"
+      ],
+      "registrations": [
+        {
+          "name": "compression_layout_lzma",
+          "conditions": [
+            "CPKT_BUILD_TESTS",
+            "CPKT_CAN_RUN_TARGET_EXECUTABLES"
+          ]
+        }
+      ],
+      "target_sensitive": false
+    },
+    "compression_layout_lz4": {
+      "group": "misc",
+      "command_inputs": [],
+      "execution": "runtime",
+      "requires": [
+        "core"
+      ],
+      "registrations": [
+        {
+          "name": "compression_layout_lz4",
+          "conditions": [
+            "CPKT_BUILD_TESTS",
+            "CPKT_CAN_RUN_TARGET_EXECUTABLES"
+          ]
+        }
+      ],
+      "target_sensitive": false
+    },
+    "compression_layout_lzo": {
+      "group": "misc",
+      "command_inputs": [],
+      "execution": "runtime",
+      "requires": [
+        "core"
+      ],
+      "registrations": [
+        {
+          "name": "compression_layout_lzo",
+          "conditions": [
+            "CPKT_BUILD_TESTS",
+            "CPKT_CAN_RUN_TARGET_EXECUTABLES"
+          ]
+        }
+      ],
+      "target_sensitive": false
+    },
+    "compression_metadata": {
+      "group": "misc",
+      "command_inputs": [
+        "tests/compression_metadata_test.cmake",
+        "cmake/compression_package_metadata.cmake"
+      ],
+      "execution": "host",
+      "requires": [
+        "core"
+      ],
+      "registrations": [
+        {
+          "name": "compression_metadata",
+          "conditions": [
+            "CPKT_BUILD_TESTS"
+          ]
+        }
+      ],
+      "target_sensitive": false
     }
   },
   "tooling": {
@@ -4508,7 +6009,14 @@
       "examples/opcua-c89/main.c",
       "tests/opcua_logging_test.c",
       "tests/opcua_types_test.c",
-      "tests/pdf_facade_test.c"
+      "tests/pdf_facade_test.c",
+      "tests/ffi_facade_test.c",
+      "tests/archive_facade_test.c",
+      "tests/zstd_facade_test.c",
+      "tests/lzma_facade_test.c",
+      "tests/lz4_facade_test.c",
+      "tests/lzo_facade_test.c",
+      "tests/native_codecs_test.c"
     ]
   },
   "preflight": {
@@ -4818,6 +6326,342 @@
       "link_contains_darwin": [
         "-lc++"
       ]
+    },
+    "cpkt_cmake_ffi_facade_static": {
+      "component": "libffi",
+      "group": "misc",
+      "package": "CpktFfiFacade",
+      "pc": "cpkt-ffi",
+      "source": "tests/ffi_facade_test.c",
+      "link": [
+        "cpkt::ffi"
+      ],
+      "kind": "static",
+      "standard": 89,
+      "runtime_args": [],
+      "link_contains": [],
+      "link_lacks": []
+    },
+    "cpkt_cmake_ffi_facade_shared": {
+      "component": "libffi",
+      "group": "misc",
+      "package": "CpktFfiFacade",
+      "pc": "cpkt-ffi",
+      "source": "tests/ffi_facade_test.c",
+      "link": [
+        "cpkt::ffi_shared"
+      ],
+      "kind": "shared",
+      "standard": 89,
+      "runtime_args": [],
+      "link_contains": [],
+      "link_lacks": []
+    },
+    "cpkt_cmake_ffi_facade_pic": {
+      "component": "libffi",
+      "group": "misc",
+      "package": "CpktFfiFacade",
+      "pc": "cpkt-ffi",
+      "source": "tests/ffi_facade_test.c",
+      "link": [
+        "cpkt::ffi"
+      ],
+      "kind": "pic",
+      "standard": 89,
+      "runtime_args": [],
+      "link_contains": [],
+      "link_lacks": []
+    },
+    "cpkt_cmake_archive_facade_static": {
+      "component": "libarchive",
+      "group": "misc",
+      "package": "CpktArchiveFacade",
+      "pc": "cpkt-archive",
+      "source": "tests/archive_facade_test.c",
+      "link": [
+        "cpkt::archive"
+      ],
+      "kind": "static",
+      "standard": 89,
+      "runtime_args": [],
+      "link_contains": [],
+      "link_lacks": []
+    },
+    "cpkt_cmake_archive_facade_shared": {
+      "component": "libarchive",
+      "group": "misc",
+      "package": "CpktArchiveFacade",
+      "pc": "cpkt-archive",
+      "source": "tests/archive_facade_test.c",
+      "link": [
+        "cpkt::archive_shared"
+      ],
+      "kind": "shared",
+      "standard": 89,
+      "runtime_args": [],
+      "link_contains": [],
+      "link_lacks": []
+    },
+    "cpkt_cmake_archive_facade_pic": {
+      "component": "libarchive",
+      "group": "misc",
+      "package": "CpktArchiveFacade",
+      "pc": "cpkt-archive",
+      "source": "tests/archive_facade_test.c",
+      "link": [
+        "cpkt::archive"
+      ],
+      "kind": "pic",
+      "standard": 89,
+      "runtime_args": [],
+      "link_contains": [],
+      "link_lacks": []
+    },
+    "cpkt_cmake_zstd_facade_static": {
+      "component": "zstd",
+      "group": "misc",
+      "package": "CpktZstdFacade",
+      "pc": "cpkt-zstd",
+      "source": "tests/zstd_facade_test.c",
+      "link": [
+        "cpkt::zstd"
+      ],
+      "kind": "static",
+      "standard": 89,
+      "runtime_args": [],
+      "link_contains": [],
+      "link_lacks": []
+    },
+    "cpkt_cmake_zstd_facade_shared": {
+      "component": "zstd",
+      "group": "misc",
+      "package": "CpktZstdFacade",
+      "pc": "cpkt-zstd",
+      "source": "tests/zstd_facade_test.c",
+      "link": [
+        "cpkt::zstd_shared"
+      ],
+      "kind": "shared",
+      "standard": 89,
+      "runtime_args": [],
+      "link_contains": [],
+      "link_lacks": []
+    },
+    "cpkt_cmake_zstd_facade_pic": {
+      "component": "zstd",
+      "group": "misc",
+      "package": "CpktZstdFacade",
+      "pc": "cpkt-zstd",
+      "source": "tests/zstd_facade_test.c",
+      "link": [
+        "cpkt::zstd"
+      ],
+      "kind": "pic",
+      "standard": 89,
+      "runtime_args": [],
+      "link_contains": [],
+      "link_lacks": []
+    },
+    "cpkt_cmake_lzma_facade_static": {
+      "component": "xz",
+      "group": "misc",
+      "package": "CpktLzmaFacade",
+      "pc": "cpkt-lzma",
+      "source": "tests/lzma_facade_test.c",
+      "link": [
+        "cpkt::lzma"
+      ],
+      "kind": "static",
+      "standard": 89,
+      "runtime_args": [],
+      "link_contains": [],
+      "link_lacks": []
+    },
+    "cpkt_cmake_lzma_facade_shared": {
+      "component": "xz",
+      "group": "misc",
+      "package": "CpktLzmaFacade",
+      "pc": "cpkt-lzma",
+      "source": "tests/lzma_facade_test.c",
+      "link": [
+        "cpkt::lzma_shared"
+      ],
+      "kind": "shared",
+      "standard": 89,
+      "runtime_args": [],
+      "link_contains": [],
+      "link_lacks": []
+    },
+    "cpkt_cmake_lzma_facade_pic": {
+      "component": "xz",
+      "group": "misc",
+      "package": "CpktLzmaFacade",
+      "pc": "cpkt-lzma",
+      "source": "tests/lzma_facade_test.c",
+      "link": [
+        "cpkt::lzma"
+      ],
+      "kind": "pic",
+      "standard": 89,
+      "runtime_args": [],
+      "link_contains": [],
+      "link_lacks": []
+    },
+    "cpkt_cmake_lz4_facade_static": {
+      "component": "lz4",
+      "group": "misc",
+      "package": "CpktLz4Facade",
+      "pc": "cpkt-lz4",
+      "source": "tests/lz4_facade_test.c",
+      "link": [
+        "cpkt::lz4"
+      ],
+      "kind": "static",
+      "standard": 89,
+      "runtime_args": [],
+      "link_contains": [],
+      "link_lacks": []
+    },
+    "cpkt_cmake_lz4_facade_shared": {
+      "component": "lz4",
+      "group": "misc",
+      "package": "CpktLz4Facade",
+      "pc": "cpkt-lz4",
+      "source": "tests/lz4_facade_test.c",
+      "link": [
+        "cpkt::lz4_shared"
+      ],
+      "kind": "shared",
+      "standard": 89,
+      "runtime_args": [],
+      "link_contains": [],
+      "link_lacks": []
+    },
+    "cpkt_cmake_lz4_facade_pic": {
+      "component": "lz4",
+      "group": "misc",
+      "package": "CpktLz4Facade",
+      "pc": "cpkt-lz4",
+      "source": "tests/lz4_facade_test.c",
+      "link": [
+        "cpkt::lz4"
+      ],
+      "kind": "pic",
+      "standard": 89,
+      "runtime_args": [],
+      "link_contains": [],
+      "link_lacks": []
+    },
+    "cpkt_cmake_lzo_facade_static": {
+      "component": "lzo",
+      "group": "misc",
+      "package": "CpktLzoFacade",
+      "pc": "cpkt-lzo",
+      "source": "tests/lzo_facade_test.c",
+      "link": [
+        "cpkt::lzo"
+      ],
+      "kind": "static",
+      "standard": 89,
+      "runtime_args": [],
+      "link_contains": [],
+      "link_lacks": []
+    },
+    "cpkt_cmake_lzo_facade_shared": {
+      "component": "lzo",
+      "group": "misc",
+      "package": "CpktLzoFacade",
+      "pc": "cpkt-lzo",
+      "source": "tests/lzo_facade_test.c",
+      "link": [
+        "cpkt::lzo_shared"
+      ],
+      "kind": "shared",
+      "standard": 89,
+      "runtime_args": [],
+      "link_contains": [],
+      "link_lacks": []
+    },
+    "cpkt_cmake_lzo_facade_pic": {
+      "component": "lzo",
+      "group": "misc",
+      "package": "CpktLzoFacade",
+      "pc": "cpkt-lzo",
+      "source": "tests/lzo_facade_test.c",
+      "link": [
+        "cpkt::lzo"
+      ],
+      "kind": "pic",
+      "standard": 89,
+      "runtime_args": [],
+      "link_contains": [],
+      "link_lacks": []
+    },
+    "cpkt_cmake_native_codecs_static": {
+      "component": "libyaml",
+      "group": "misc",
+      "package": "CpktYaml",
+      "extra_packages": [
+        "CpktBzip2"
+      ],
+      "pc": "yaml-0.1",
+      "pc_extra": [
+        "bzip2"
+      ],
+      "source": "tests/native_codecs_test.c",
+      "link": [
+        "cpkt::libyaml_static",
+        "cpkt::bzip2_static"
+      ],
+      "kind": "static",
+      "standard": 89,
+      "runtime_args": [],
+      "link_contains": [],
+      "link_lacks": []
+    },
+    "cpkt_cmake_native_codecs_shared": {
+      "component": "libyaml",
+      "group": "misc",
+      "package": "CpktYaml",
+      "extra_packages": [
+        "CpktBzip2"
+      ],
+      "pc": "yaml-0.1",
+      "pc_extra": [
+        "bzip2"
+      ],
+      "source": "tests/native_codecs_test.c",
+      "link": [
+        "cpkt::libyaml_shared",
+        "cpkt::bzip2_shared"
+      ],
+      "kind": "shared",
+      "standard": 89,
+      "runtime_args": [],
+      "link_contains": [],
+      "link_lacks": []
+    },
+    "cpkt_cmake_native_codecs_pic": {
+      "component": "libyaml",
+      "group": "misc",
+      "package": "CpktYaml",
+      "extra_packages": [
+        "CpktBzip2"
+      ],
+      "pc": "yaml-0.1",
+      "pc_extra": [
+        "bzip2"
+      ],
+      "source": "tests/native_codecs_test.c",
+      "link": [
+        "cpkt::libyaml_static",
+        "cpkt::bzip2_static"
+      ],
+      "kind": "pic",
+      "standard": 89,
+      "runtime_args": [],
+      "link_contains": [],
+      "link_lacks": []
     }
   },
   "installed_examples": {

@@ -25,6 +25,8 @@ add_custom_command(OUTPUT "${CMAKE_BINARY_DIR}/archive.passed"
 add_custom_target(verify_archive DEPENDS "${CMAKE_BINARY_DIR}/archive.passed")
 file(GLOB_RECURSE consumer_inputs CONFIGURE_DEPENDS LIST_DIRECTORIES FALSE
   "${CPKT_SOURCE}/tests/sdk-consumers/*" "${CPKT_SOURCE}/examples/*")
+file(GLOB codec_consumer_inputs CONFIGURE_DEPENDS "${CPKT_SOURCE}/tests/*_facade_test.c")
+list(APPEND consumer_inputs ${codec_consumer_inputs} "${CPKT_SOURCE}/tests/native_codecs_test.c")
 add_custom_command(OUTPUT "${CMAKE_BINARY_DIR}/consumers.passed"
   COMMAND "${CMAKE_COMMAND}" -E rm -f "${CMAKE_BINARY_DIR}/consumers.passed"
   COMMAND bash "${CPKT_SOURCE}/scripts/package-consumers.sh" "${CMAKE_BINARY_DIR}/combined-forward"

@@ -10,7 +10,7 @@ files=()
 for directory in include src tests examples fuzz tools; do
   [ -d "$cpkt_root/$directory" ] || continue
   while IFS= read -r -d '' file; do files+=("$file"); done < <(
-    find "$cpkt_root/$directory" -type f \( -name '*.c' -o -name '*.h' -o -name '*.cpp' \
+    find "$cpkt_root/$directory" -type f \( -name '*.c' -o -name '*.h' -o -name '*.inc' -o -name '*.cpp' \
       -o -name '*.cc' -o -name '*.cxx' -o -name '*.hpp' \) -print0
   )
 done
