@@ -1,7 +1,7 @@
 include("${CMAKE_CURRENT_LIST_DIR}/CpktReadOnlyToolchain.cmake")
-execute_process(COMMAND bash "${CMAKE_CURRENT_LIST_DIR}/../scripts/cpkt-aflpp.sh" discover
+execute_process(COMMAND bash "${CPKT_LIFECYCLE_SCRIPTS_DIR}/cpkt-aflpp.sh" discover
   OUTPUT_VARIABLE _description RESULT_VARIABLE _status)
-if(NOT _status EQUAL 0)
+if(NOT _status EQUAL 0 OR NOT _description MATCHES "(^|[\r\n])status=ready([\r\n]|$)")
   message(FATAL_ERROR "Pinned AFL tooling is absent; prepare it explicitly before selected hardening")
 endif()
 foreach(_key root cc cxx helper)

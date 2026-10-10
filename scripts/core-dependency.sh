@@ -1,34 +1,46 @@
 #!/usr/bin/env bash
 set -euo pipefail
 source "$(dirname -- "${BASH_SOURCE[0]}")/lifecycle-common.sh"
-[ "$cpkt_owner" != core ] || cpkt_fail 'cpkt produces core; prepare upstreams with make deps-all'
-target=${1:?target required}
-pin=$(python3 "$cpkt_scripts/cpkt_core.py" pin --target "$target")
-export GROUP="$cpkt_owner"
-cpkt_locked "$target"
+[ "$cpkt_owner" = misc ] || cpkt_fail 'this prerequisite belongs to cpktmisc'
+cpkt_check_group "${GROUP:-all}"
+case "${1:-}" in
+  --preset)
+    [ "$#" = 2 ] || cpkt_fail 'usage: core-dependency.sh --preset <preset> | --target <target>'
+    cpkt_preset "$2"
+    target=$cpkt_target ;;
+  --target)
+    [ "$#" = 2 ] || cpkt_fail 'usage: core-dependency.sh --preset <preset> | --target <target>'
+    target=$2 ;;
+  *) cpkt_fail 'usage: core-dependency.sh --preset <preset> | --target <target>' ;;
+esac
+case "$target" in x86_64-linux-gnu|x86_64-linux-musl|aarch64-linux-gnu|aarch64-linux-musl|armhf-linux-gnu|armhf-linux-musl|arm64-apple-darwin) ;;
+  *) cpkt_fail "unsupported imported core target: $target" ;;
+esac
+cpkt_check_cache_overrides
 workspace="$cpkt_root/build/core-acquisition/$target"
-cpkt_owned_path "$workspace"
-cpkt_owned_path "$workspace/pin.json"
+destination="$cpkt_root/.cache/cpkt/$target/install"
 cpkt_owned_path "$workspace/archive-path"
-mkdir -p "$workspace"
-printf '%s\n' "$pin" > "$workspace/pin.json"
-"$cpkt_cmake" "-DCPKT_REPO_ROOT=$cpkt_root" "-DCPKT_CORE_TARGET=$target" \
-  "-DCPKT_CORE_PIN=$workspace/pin.json" -DCPKT_CORE_ACTION=acquire \
-  -P "$cpkt_root/cmake/core-dependency.cmake"
-archive=$(cat "$workspace/archive-path")
-if python3 "$cpkt_scripts/cpkt_core.py" validate --target "$target"; then
+cpkt_owned_path "$destination"
+run_core() {
   "$cpkt_cmake" "-DCPKT_REPO_ROOT=$cpkt_root" "-DCPKT_CORE_TARGET=$target" \
-    -DCPKT_CORE_ACTION=link -P "$cpkt_root/cmake/core-dependency.cmake"
-  exit 0
+    "-DCPKT_CORE_ACTION=$1" "${@:2}" -P "$cpkt_root/cmake/core-dependency.cmake"
+}
+# Valid installed bytes need no archive acquisition. Only this explicit command
+# repairs a damaged local extraction.
+if [ -f "$destination/share/cpkt/packages/core.json" ]; then
+  if run_core validate; then run_core link; exit 0; fi
 fi
+mkdir -p "$workspace"
+run_core acquire
 stage=$(mktemp -d "$workspace/extract.XXXXXXXX")
 trap 'rm -rf -- "$stage"' EXIT
-python3 "$cpkt_scripts/cpkt_core.py" extract --target "$target" --archive "$archive" --destination "$stage"
-prefix=$(python3 "$cpkt_scripts/cpkt_core.py" extracted-path --target "$target" --destination "$stage")
-destination="$cpkt_root/.cache/cpkt/$target/install"
-bash "$cpkt_scripts/clean.sh" imported-core --path "$destination"
+trap 'exit 129' HUP
+trap 'exit 130' INT
+trap 'exit 143' TERM
+run_core extract "-DCPKT_CORE_STAGE=$stage"
+# Failed download, extraction or validation leaves the existing SDK intact.
 mkdir -p "$(dirname -- "$destination")"
-mv -- "$prefix" "$destination"
-python3 "$cpkt_scripts/cpkt_core.py" validate --target "$target"
-"$cpkt_cmake" "-DCPKT_REPO_ROOT=$cpkt_root" "-DCPKT_CORE_TARGET=$target" \
-  -DCPKT_CORE_ACTION=link -P "$cpkt_root/cmake/core-dependency.cmake"
+rm -rf -- "$destination"
+mv -- "$stage/sdk" "$destination"
+run_core link
+printf 'cpktmisc: verified core SDK ready for %s\n' "$target"

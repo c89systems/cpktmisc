@@ -10,7 +10,7 @@ base="$cpkt_root/build/source-composition"
 archive_name="$cpkt_provider-$version-x86_64-linux-gnu.tar.gz"
 cpkt_owned_path "$base/$archive_name"
 bash "$cpkt_scripts/build.sh" preflight --group all --preset x86_64-linux-gnu-release
-bash "$cpkt_scripts/core-dependency.sh" x86_64-linux-gnu
+bash "$cpkt_scripts/core-dependency.sh" --target x86_64-linux-gnu
 bash "$cpkt_scripts/build.sh" test --group all --preset x86_64-linux-gnu-release
 bash "$cpkt_scripts/package.sh" package-stage --group "$cpkt_owner" --preset x86_64-linux-gnu-release --scope selected
 mkdir -p "$base"

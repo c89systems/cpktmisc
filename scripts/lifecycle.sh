@@ -63,8 +63,15 @@ case "$action" in
   example-*|e2e-sus|e2e-cpktxscribe|cpktxscribe) [ "$cpkt_owner" = misc ] || cpkt_fail 'audio/speech operations require cpktmisc' ;;
 esac
 export GROUP="$group" PRESET="$preset" SCOPE="$scope"
-cpkt_locked "$action" --group "$group" --preset "$preset" --preset-explicit "$preset_explicit" \
-  --scope "$scope" --scope-explicit "$scope_explicit" --dependency "$dependency"
+case "$action" in
+  build*|test|test-debug|test-host|debug|deps|deps-all|deps-debug|finalize-slice|clangd-surface|examples|valgrind|fuzz*)
+    cpkt_require_core ;;
+esac
+case "$action" in
+  format|format-check|clean|clean-dist|deps-core) ;;
+  *) cpkt_locked "$action" --group "$group" --preset "$preset" --preset-explicit "$preset_explicit" \
+    --scope "$scope" --scope-explicit "$scope_explicit" --dependency "$dependency" ;;
+esac
 
 run_build() { bash "$cpkt_scripts/build.sh" "$@" --group "$group" --preset "$preset"; }
 run_action() { bash "$cpkt_scripts/lifecycle.sh" "$1" --group "$group" --preset "$preset" --preset-explicit no; }
@@ -118,7 +125,7 @@ case "$action" in
   fuzz) bash "$cpkt_scripts/fuzz.sh" standard ;;
   fuzz-smoke|fuzz-long) bash "$cpkt_scripts/fuzz.sh" "${action#fuzz-}" ;;
   lifecycle-version-contract) bash "$cpkt_scripts/version-contract.sh" check ;;
-  deps-core) bash "$cpkt_scripts/core-dependency.sh" "$cpkt_target" ;;
+  deps-core) bash "$cpkt_scripts/core-dependency.sh" --target "$cpkt_target" ;;
   test-darwin-native|test-darwin-sdk) bash "$cpkt_scripts/darwin.sh" "$action" ;;
   test-github-actions-contracts) python3 "$cpkt_root/tests/github_actions_contract_test.py" ;;
   e2e-postgres|test-e2e)

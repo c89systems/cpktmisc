@@ -1,5 +1,11 @@
 # Discovery retains the pinned collection, linker provenance, sysroot and runtime policy.
 # It deliberately has no installing/provisioning branch.
+if(NOT CPKT_LIFECYCLE_SCRIPTS_DIR)
+  get_filename_component(_cpkt_repo_root "${CMAKE_CURRENT_LIST_DIR}" DIRECTORY)
+  set(CPKT_LIFECYCLE_SCRIPTS_DIR "${_cpkt_repo_root}/scripts" CACHE PATH "Vendored lifecycle helper directory.")
+endif()
+list(APPEND CMAKE_TRY_COMPILE_PLATFORM_VARIABLES CPKT_LIFECYCLE_SCRIPTS_DIR)
+
 function(cpkt_toolchain_report_value description key out_var)
   string(REGEX MATCH "(^|\n)${key}=([^\r\n]+)" _cpkt_match "${description}")
   if(NOT _cpkt_match)
@@ -9,8 +15,7 @@ function(cpkt_toolchain_report_value description key out_var)
 endfunction()
 
 function(cpkt_discover_bootlin_toolchain target_id)
-  get_filename_component(_cpkt_repo_root "${CMAKE_CURRENT_FUNCTION_LIST_DIR}" DIRECTORY)
-  set(_cpkt_resolver "${_cpkt_repo_root}/scripts/cpkt-toolchains.sh")
+  set(_cpkt_resolver "${CPKT_LIFECYCLE_SCRIPTS_DIR}/cpkt-toolchains.sh")
   if(NOT EXISTS "${_cpkt_resolver}")
     message(FATAL_ERROR "Pinned Bootlin resolver is missing: ${_cpkt_resolver}")
   endif()

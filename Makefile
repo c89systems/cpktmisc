@@ -35,6 +35,7 @@ help:
 	@printf '  %-30s %s\n' 'test-cross' 'Run release preset tests for cross-capable targets.'
 	@printf '  %-30s %s\n' 'cross-test' 'Alias for test-cross.'
 	@printf '  %-30s %s\n' 'test-all' 'Run the full local confidence gate.'
+	@printf '  %-30s %s\n' 'test-lifecycle' 'Run native prerequisite, cache and resolver fixtures without building misc.'
 	@printf '  %-30s %s\n' 'test-install-tree' 'Run install-tree package consumer smoke tests.'
 	@printf '  %-30s %s\n' 'examples' 'Build and smoke-test source-tree examples.'
 	@printf '  %-30s %s\n' 'clangd-surface' 'Verify compile_commands and public hover comments for examples.'
@@ -88,4 +89,9 @@ build build-debug build-host build-release clangd-surface clean clean-dist cpktx
 
 .PHONY: deps-core
 deps-core:
-	@bash scripts/lifecycle.sh deps-core --group "$(GROUP)" --preset "$(PRESET)"
+	@bash scripts/core-dependency.sh --preset "$(PRESET)"
+
+.PHONY: test-lifecycle
+test-lifecycle:
+	@cmake -S tests/lifecycle -B build/lifecycle-tests
+	@ctest --test-dir build/lifecycle-tests --no-tests=error --stop-on-failure --output-on-failure

@@ -1,4 +1,4 @@
-# The caller passes JSON returned by cpkt_core.py after byte/pin validation.
+# The caller passes JSON from native published-core byte/pin validation.
 macro(cpkt_load_core_versions manifest)
   string(JSON _core_component_count LENGTH "${manifest}" components)
   math(EXPR _core_component_last "${_core_component_count} - 1")
@@ -42,15 +42,11 @@ endfunction()
 
 # Prerequisite imports only. This module never configures a core producer.
 macro(cpkt_import_core)
-  execute_process(COMMAND "${CPKT_HOST_PYTHON_EXECUTABLE}" "${CMAKE_SOURCE_DIR}/scripts/cpkt_core.py"
-    manifest --target "${CPKT_TARGET_ID}" RESULT_VARIABLE status OUTPUT_VARIABLE core_manifest
-    ERROR_VARIABLE failure OUTPUT_STRIP_TRAILING_WHITESPACE)
-  if(NOT status EQUAL 0)
-    message(FATAL_ERROR "Verified published core required: ${failure}")
-  endif()
+  include("${CMAKE_SOURCE_DIR}/cmake/CpktPublishedCore.cmake")
+  set(prefix "${CMAKE_SOURCE_DIR}/.cache/cpkt/${CPKT_TARGET_ID}/install")
+  cpkt_validate_published_core("${CMAKE_SOURCE_DIR}" "${CPKT_TARGET_ID}" "${prefix}" core_manifest)
   cpkt_load_core_versions("${core_manifest}")
   cpkt_register_core_contracts("${core_manifest}")
-  set(prefix "${CMAKE_SOURCE_DIR}/.cache/cpkt/${CPKT_TARGET_ID}/install")
   set(CPKT_CORE_PREFIX "${prefix}" CACHE PATH "Verified pinned core installation." FORCE)
   foreach(package IN ITEMS OpenSSL CpktOpenSSL zlib nghttp2 CpktNghttp2 libssh2 CpktLibssh2 CURL libxml2 Lua CpktLua CpktLuaRuntime mqtt-c CpktMqttc Kerberos5 CpktGssapi CyrusSASL CpktSasl OpenLDAP cmocka CpktCmocka)
     find_package(${package} CONFIG REQUIRED PATHS "${prefix}" NO_DEFAULT_PATH NO_CMAKE_FIND_ROOT_PATH)

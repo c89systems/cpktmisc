@@ -48,6 +48,35 @@ cpkt_cache_value() {
   return 1
 }
 
+# Shared caches are the declared global cpkt cache. Explicit local overrides
+# must stay in this checkout's disposable state, never another checkout.
+cpkt_validate_cache_location() {
+  local path=$1 workspace parent owner global
+  cpkt_validate_mutation_path "$path"
+  workspace=$(git -C "$cpkt_root" rev-parse --show-toplevel 2>/dev/null) || workspace=$cpkt_root
+  parent=$path
+  while [ ! -d "$parent" ] && [ "$parent" != / ]; do
+    parent=${parent%/*}; [ -n "$parent" ] || parent=/
+  done
+  owner=$(git -C "$parent" rev-parse --show-toplevel 2>/dev/null) || owner=
+  if [ -n "$owner" ] && [ "$owner" != "$workspace" ]; then
+    cpkt_fail "cache belongs to another checkout: $path"
+  fi
+  global=${XDG_CACHE_HOME:-${HOME:?HOME is required}/.cache}/cpkt
+  case "$path" in
+    "$workspace/build"|"$workspace/build/"*|"$workspace/.cache"|"$workspace/.cache/"*|"$global"|"$global/"*) ;;
+    *) cpkt_fail "cache must be checkout-owned generated state or the global cpkt cache: $path" ;;
+  esac
+}
+
+cpkt_check_cache_overrides() {
+  local name value
+  for name in CPKT_TOOLCHAIN_CACHE CPKT_DEPENDENCY_CACHE; do
+    value=${!name:-}
+    [ -z "$value" ] || cpkt_validate_cache_location "$value"
+  done
+}
+
 cpkt_preset() {
   local preset=$1 listed
   listed=$(cd "$cpkt_root" && "$cpkt_cmake" --list-presets=configure)
@@ -77,6 +106,12 @@ cpkt_jobs() {
   [[ "$jobs" =~ ^[1-9][0-9]*$ ]] || cpkt_fail 'job limit must be a positive integer'
   [ "$jobs" -le "$limit" ] || cpkt_fail "job limit exceeds configured host maximum $limit"
   printf '%s\n' "$jobs"
+}
+
+cpkt_require_core() {
+  "$cpkt_cmake" "-DCPKT_REPO_ROOT=$cpkt_root" "-DCPKT_CORE_TARGET=$cpkt_target" \
+    -DCPKT_CORE_ACTION=validate -P "$cpkt_root/cmake/core-dependency.cmake" ||
+    cpkt_fail "published core prerequisite is missing or invalid; run make deps-core PRESET=$preset"
 }
 
 cpkt_locked() {

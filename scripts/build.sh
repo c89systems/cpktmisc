@@ -61,6 +61,7 @@ if [ "$action" = test ]; then
 fi
 cpkt_owned_path "$cpkt_root/build/$cpkt_target/$cpkt_owner/producer/CMakeCache.txt"
 export GROUP="$group"
+if [ "$action" != preflight ]; then cpkt_require_core; fi
 cpkt_locked "${original_arguments[@]}"
 cd "$cpkt_root"
 if [ "$action" = preflight ]; then

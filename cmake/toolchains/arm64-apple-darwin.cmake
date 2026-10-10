@@ -20,7 +20,11 @@ endif()
 get_filename_component(_cpkt_toolchain_dir "${CMAKE_CURRENT_LIST_DIR}" ABSOLUTE)
 get_filename_component(_cpkt_cmake_dir "${_cpkt_toolchain_dir}" DIRECTORY)
 get_filename_component(_cpkt_repo_root "${_cpkt_cmake_dir}" DIRECTORY)
-set(_cpkt_toolchain_resolver "${_cpkt_repo_root}/scripts/cpkt-toolchains.sh")
+if(NOT CPKT_LIFECYCLE_SCRIPTS_DIR)
+    set(CPKT_LIFECYCLE_SCRIPTS_DIR "${_cpkt_repo_root}/scripts" CACHE PATH "Vendored lifecycle helper directory.")
+endif()
+list(APPEND CMAKE_TRY_COMPILE_PLATFORM_VARIABLES CPKT_LIFECYCLE_SCRIPTS_DIR)
+set(_cpkt_toolchain_resolver "${CPKT_LIFECYCLE_SCRIPTS_DIR}/cpkt-toolchains.sh")
 execute_process(
     COMMAND "${CMAKE_COMMAND}" -E env
       "OSXCROSS_ROOT=${CPKT_OSXCROSS_ROOT}"
@@ -31,9 +35,8 @@ execute_process(
     ERROR_VARIABLE _cpkt_darwin_toolchain_error)
 string(ASCII 13 _cpkt_carriage_return)
 string(REPLACE "${_cpkt_carriage_return}" "" _cpkt_darwin_toolchain_report "${_cpkt_darwin_toolchain_report}")
-string(FIND "${_cpkt_darwin_toolchain_report}" "status=ready" _cpkt_darwin_toolchain_ready_index)
 if(NOT _cpkt_darwin_toolchain_result EQUAL 0
-    OR _cpkt_darwin_toolchain_ready_index LESS 0)
+    OR NOT _cpkt_darwin_toolchain_report MATCHES "(^|\n)status=ready(\n|$)")
     message(FATAL_ERROR
         "arm64 Apple Darwin requires the local osxcross SDK and the pinned host MIG toolchain.\n"
         "Run: ${_cpkt_toolchain_resolver} ensure arm64-apple-darwin\n"
@@ -139,7 +142,6 @@ unset(_cpkt_carriage_return)
 unset(_cpkt_darwin_toolchain_error)
 unset(_cpkt_darwin_toolchain_report)
 unset(_cpkt_darwin_toolchain_result)
-unset(_cpkt_darwin_toolchain_ready_index)
 unset(_cpkt_toolchain_resolver)
 unset(_cpkt_repo_root)
 unset(_cpkt_cmake_dir)

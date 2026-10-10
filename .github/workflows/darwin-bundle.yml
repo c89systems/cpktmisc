@@ -1,9 +1,6 @@
 name: Native Darwin cpktmisc verification
 
 on:
-  push:
-    branches: ["feature/**", "fix/**", trunk]
-  pull_request:
   workflow_dispatch:
     inputs:
       lane:

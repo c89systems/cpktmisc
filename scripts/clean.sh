@@ -12,12 +12,11 @@ while [ "$#" -gt 0 ]; do
 done
 cpkt_check_group "$group"
 export GROUP="$group"
-cpkt_locked "$action" --group "$group" --path "$path"
 
 remove_generated() {
   local path=$1 parent
   case "$path" in
-    "$cpkt_root/build/"*|"$cpkt_root/.cache/"*|"$cpkt_root/.cache"|"$cpkt_root/dist"|"$cpkt_root"/package-assertions-*) ;;
+    "$cpkt_root/build"|"$cpkt_root/build/"*|"$cpkt_root/.cache/"*|"$cpkt_root/.cache"|"$cpkt_root/dist"|"$cpkt_root"/package-assertions-*) ;;
     "$cpkt_root"/scripts/*|"$cpkt_root"/tests/*|"$cpkt_root"/tools/*|"$cpkt_root"/cmake/*)
       [ "${path##*/}" = __pycache__ ] || cpkt_fail "cleanup source path is not a Python cache: $path" ;;
     *) cpkt_fail "cleanup path is not generated repository state: $path" ;;
@@ -31,11 +30,6 @@ remove_generated() {
   rm -rf -- "$path"
 }
 case "$action" in
-  imported-core)
-    [ "$cpkt_owner" != core ] || cpkt_fail 'core cannot clean an imported SDK'
-    case "$path" in "$cpkt_root/.cache/cpkt/"*/install) ;; *) cpkt_fail 'unexpected core prerequisite prefix' ;; esac
-    remove_generated "$path"
-    exit 0 ;;
   graph|stage)
     case "$path" in "$cpkt_root/build/"*) ;; *) cpkt_fail 'graph/stage cleanup must remain under build/' ;; esac
     remove_generated "$path"
@@ -47,28 +41,13 @@ case "$action" in
   clean) ;;
   *) cpkt_fail "unsupported cleanup operation: $action" ;;
 esac
-# Stop database services before deleting any state, and preserve all state if
-# teardown fails. This also applies to selected database cleanup.
-if [ "$cpkt_owner" = db ] && [ -d "$cpkt_root/build/devenv" ]; then
-  bash "$cpkt_scripts/devenv.sh" down
-  remove_generated "$cpkt_root/build/devenv"
-fi
 if [ "$group" = all ]; then
-  for entry in "$cpkt_root/build/"*; do
-    [ "$entry" != "$cpkt_root/build/control" ] || continue
-    remove_generated "$entry"
-  done
-  for entry in "$cpkt_root/build/control/"* "$cpkt_root/build/control/".*; do
-    case "$(basename -- "$entry")" in
-      .|..|operation.lock|reserved-tag.json|.operation.sock) continue ;;
-      tmp)
-        for temporary in "$entry/"*; do
-          [ "$temporary" != "$entry/${CPKT_OPERATION_RUN:?}" ] || continue
-          remove_generated "$temporary"
-        done ;;
-      *) remove_generated "$entry" ;;
-    esac
-  done
+  # Validate all top-level roots before deletion. Hidden entries and legacy
+  # operation state are disposable too; only the declared global caches survive.
+  cpkt_validate_mutation_path "$cpkt_root/build"
+  cpkt_validate_mutation_path "$cpkt_root/.cache"
+  cpkt_validate_mutation_path "$cpkt_root/dist"
+  remove_generated "$cpkt_root/build"
   remove_generated "$cpkt_root/.cache"
   remove_generated "$cpkt_root/dist"
   for entry in "$cpkt_root"/package-assertions-*; do remove_generated "$entry"; done

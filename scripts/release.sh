@@ -11,7 +11,7 @@ run() {
 }
 prepare_core_targets() {
   while IFS= read -r target; do
-    bash "$cpkt_scripts/core-dependency.sh" "$target"
+    bash "$cpkt_scripts/core-dependency.sh" --target "$target"
   done < <(cpkt_info targets)
 }
 case "$action" in
@@ -42,7 +42,7 @@ if [ "$action" = release ]; then
   run clean
 fi
 if [ "$action" = test-all ]; then
-  bash "$cpkt_scripts/core-dependency.sh" x86_64-linux-gnu
+  bash "$cpkt_scripts/core-dependency.sh" --target x86_64-linux-gnu
 else
   prepare_core_targets
 fi

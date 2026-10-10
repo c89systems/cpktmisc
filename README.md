@@ -43,6 +43,15 @@ complete pinned compiler collection. LLVM/Clang, clangd, clang-format, Valgrind
 and QEMU are host tools; Darwin cross builds require osxcross and its Apple SDK.
 The configured concurrency limit remains eight locally and two on native Darwin.
 
+Lifecycle alignment is in progress. The published-core prerequisite and cleanup
+foundation is available; the remaining component and delivery controllers still
+need their native cutover. See [the migration ledger](docs/lifecycle-migration.md)
+before attempting the component build and test phase. Verify the foundation with:
+
+```sh
+make test-lifecycle
+```
+
 ```sh
 make debug
 make finalize-slice
@@ -64,9 +73,9 @@ make debug
 
 `dependencies/cpkt.json` pins one published core version and, for every supported
 target, its exact GitHub URL, SHA-256 archive digest and portable package ID.
-The initial 0.1.0 pins are populated from the verified core publication. Until
-then acquisition fails clearly. There is no sibling-checkout or host-library
-fallback. Ordinary consumer operations only validate an existing prerequisite;
+All seven 0.1.0 pins are populated from the verified core publication. Native
+CMake validates the selected SDK's manifest and payload bytes. There is no
+sibling-checkout or host-library fallback. Ordinary consumer operations only validate an existing prerequisite;
 `deps-core` is the explicit acquisition action.
 
 An optional release need not have the same version as core. Its manifest records
@@ -85,9 +94,10 @@ and arm64 Darwin. Each release ships:
 
 `make release` starts clean and runs the complete owning repository's required
 gates. A candidate rehearsal cannot satisfy the tagged clean release. Native
-macOS verification builds and tests the exact development commit in one GitHub
-Actions run. Its archives are diagnostics only; release assets are built and
-published locally, with Darwin built through osxcross on Linux. A separate
+macOS diagnostics are optional and explicitly dispatched on an existing remote
+ref. Never push to obtain CI feedback. Their archives are diagnostics only;
+release assets are built and published locally, with Darwin built through
+osxcross on Linux. A separate
 hosted check of local archive bytes is optional, not a release prerequisite.
 Trunk and release tags are pushed only after the verified release boundary.
 
