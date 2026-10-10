@@ -46,8 +46,9 @@ of core's release version; schema markers are unchanged.
   own their assertions. Public header contracts use a compiled C89 scanner.
 - CMake install stages only owned misc payload, metadata and notices. Native
   final-byte checks verify inventory, versions, hashes, architecture, facade ABI,
-  exports/imports, privacy and relocatability. Composition checks exact core
-  identity and unique path ownership in both extraction orders. Installed CMake
+  exports/imports, privacy and relocatability. Core and misc remain in separate
+  installation prefixes, with exact core identity checks and independent relocation.
+  Ordinary CMake/pkg-config discovery resolves dependencies. Installed CMake
   and pkg-config consumers include C89, shared/static, PIC, mixed C++ and examples.
 - Darwin libpng explicitly uses the flat dylib layout required by the SDK metadata.
   Its upstream ABI identity is retained. Linux speech includes the selected

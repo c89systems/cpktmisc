@@ -3,7 +3,6 @@ set -euo pipefail
 source "$(dirname -- "${BASH_SOURCE[0]}")/lifecycle-common.sh"
 version=${1:?version required}
 prefix="$cpkt_root/build/package-stage/arm64-apple-darwin/misc/$cpkt_provider-$version-arm64-apple-darwin"
-core="$cpkt_root/.cache/cpkt/arm64-apple-darwin/install"
 workspace="$cpkt_root/build/darwin-smoke-package"
 cpkt_owned_path "$workspace"
 archive="$cpkt_root/dist/$cpkt_provider-$version-arm64-apple-darwin-smoke-test.zip"
@@ -13,7 +12,7 @@ mkdir -p "$cpkt_root/dist"
 trap 'rm -f -- "$archive.tmp"' EXIT
 rm -rf -- "$workspace"
 mkdir -p "$workspace/darwin-smoke-test/bin" "$workspace/darwin-smoke-test/lib"
-for file in "$core/lib/"*.dylib "$prefix/lib/"*.dylib; do
+for file in "$prefix/lib/"*.dylib; do
   [ -e "$file" ] || cpkt_fail "missing Darwin SDK libraries"
   # The smoke transport has a flat library directory with regular file bytes.
   cp -L -- "$file" "$workspace/darwin-smoke-test/lib/"

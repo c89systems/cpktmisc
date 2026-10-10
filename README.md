@@ -84,8 +84,18 @@ sibling-checkout or host-library fallback. Ordinary consumer operations only val
 `deps-core` is the explicit acquisition action.
 
 An optional release need not have the same version as core. Its manifest records
-the exact core release, target and package ID, and composition validates those
-identities before importing libraries. Both extraction orders are verified.
+the exact core release, target and package ID. Install core and misc into separate
+prefixes and discover them through `CMAKE_PREFIX_PATH`, or their `lib/pkgconfig`
+directories through `PKG_CONFIG_PATH`. Installed consumers validate the required
+core identity and use its imported targets. Neither provider overlays or republishes
+the other. Consumer tests relocate each SDK independently.
+
+For example, use `-DCMAKE_PREFIX_PATH="/opt/cpktmisc;/opt/cpkt"` with CMake,
+or `PKG_CONFIG_PATH=/opt/cpktmisc/lib/pkgconfig:/opt/cpkt/lib/pkgconfig` with
+pkg-config. The Darwin smoke ZIP contains misc libraries only; executing it also
+requires the pinned core installation on the runtime library search path.
+For cross builds, append both SDK prefixes to `CMAKE_FIND_ROOT_PATH` in the
+consumer's CMake setup and retain `CMAKE_FIND_ROOT_PATH_MODE_PACKAGE=ONLY`.
 
 ## Distribution and release
 

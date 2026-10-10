@@ -6080,8 +6080,8 @@
       "standard": 99,
       "runtime_args": [],
       "link_contains": [
-        "@prefix/lib/libssl.a",
-        "@prefix/lib/libcrypto.a"
+        "@core/lib/libssl.a",
+        "@core/lib/libcrypto.a"
       ],
       "link_lacks": []
     },
@@ -6099,7 +6099,7 @@
       "runtime_args": [],
       "link_contains": [
         "@prefix/lib/libcpktaudio.a",
-        "@prefix/lib/libcurl.a"
+        "@core/lib/libcurl.a"
       ],
       "link_lacks": [
         "@prefix/lib/libminiaudio.a",
@@ -6283,7 +6283,7 @@
       "link_contains": [
         "@prefix/lib/libcpktaudio.a",
         "@prefix/lib/libcpktsus.a",
-        "@prefix/lib/libcurl.a"
+        "@core/lib/libcurl.a"
       ],
       "link_lacks": []
     },

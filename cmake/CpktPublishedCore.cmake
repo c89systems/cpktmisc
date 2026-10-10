@@ -1,5 +1,5 @@
 include_guard(GLOBAL)
-include("${CMAKE_CURRENT_LIST_DIR}/CpktSDKValidate.cmake")
+include("${CMAKE_CURRENT_LIST_DIR}/CpktMiscValidate.cmake")
 
 # Published SDK pins are the only core prerequisite; acquisition is explicit.
 function(cpkt_core_pin root target output)
@@ -42,7 +42,7 @@ function(cpkt_validate_published_core root target prefix output)
   string(JSON CPKT_EXPECTED_VERSION GET "${pin}" version)
   set(CMAKE_SYSTEM_NAME "")
   set(CMAKE_SYSTEM_PROCESSOR "")
-  _cpkt_sdk_validate_prefix("${prefix}" core)
+  _cpkt_misc_validate_prefix("${prefix}" core)
   file(READ "${prefix}/share/cpkt/packages/core.json" manifest)
   string(JSON expected GET "${pin}" package_id)
   string(JSON actual GET "${manifest}" package_id)

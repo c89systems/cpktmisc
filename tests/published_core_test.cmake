@@ -8,7 +8,7 @@ set(name cpkt-1.2.3-${target})
 set(sdk "${work}/${name}")
 file(MAKE_DIRECTORY "${repo}/cmake" "${repo}/scripts" "${repo}/dependencies"
   "${sdk}/include" "${sdk}/share/cpkt/packages" "${sdk}/lib")
-foreach(module CpktPublishedCore CpktCoreImports CpktSDKValidate CpktDependencyArchiveCache CpktMutationPaths core-dependency extract-release-archive gnu_tar lifecycle-info)
+foreach(module CpktPublishedCore CpktCoreImports CpktMiscValidate CpktDependencyArchiveCache CpktMutationPaths core-dependency extract-release-archive gnu_tar lifecycle-info)
   file(COPY_FILE "${CPKT_ROOT}/cmake/${module}.cmake" "${repo}/cmake/${module}.cmake")
 endforeach()
 foreach(script core-dependency lifecycle-common mutation-paths require-host-bash)

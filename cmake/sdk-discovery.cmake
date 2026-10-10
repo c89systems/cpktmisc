@@ -1,21 +1,24 @@
-# Optional metadata imports its exact core prerequisite from the composed prefix.
+# Each provider keeps its own prefix; normal discovery resolves dependencies.
 file(READ "${CPKT_CORE_PREFIX}/share/cpkt/packages/core.json" core_manifest)
 string(JSON core_version GET "${core_manifest}" release_version)
 file(GLOB_RECURSE configs "${_stage_root}/lib/cmake/*.cmake")
-set(preamble [=[include("${CMAKE_CURRENT_LIST_DIR}/../CpktSDK/Validate.cmake")
-cpkt_sdk_validate(misc)
-cpkt_sdk_assert_targets(misc)
+set(preamble [=[include(CMakeFindDependencyMacro)
+find_dependency(CpktMisc CONFIG REQUIRED)
+cpkt_misc_assert_targets()
 ]=])
 foreach(config IN LISTS configs)
   file(READ "${config}" content)
-  string(REGEX REPLACE "find_dependency\\(([^ \t\r\n)]+)([^)]*CONFIG[^)]*)\\)"
-    "find_dependency(\\1\\2 PATHS \"\${_cpkt_sdk_prefix}\" NO_DEFAULT_PATH NO_CMAKE_FIND_ROOT_PATH)" content "${content}")
   if(config MATCHES "(Config|config)[.]cmake$" AND NOT config MATCHES "(ConfigVersion|config-version)[.]cmake$")
     string(PREPEND content "${preamble}")
-    string(APPEND content "\ncpkt_sdk_assert_targets(misc)\n")
+    string(APPEND content "\ncpkt_misc_assert_targets()\n")
   endif()
   file(WRITE "${config}" "${content}")
 endforeach()
+file(MAKE_DIRECTORY "${_stage_root}/lib/cmake/CpktMisc")
+file(COPY_FILE "${CPKT_SOURCE_DIR}/cmake/CpktMiscConfig.cmake"
+  "${_stage_root}/lib/cmake/CpktMisc/CpktMiscConfig.cmake")
+file(COPY_FILE "${CPKT_SOURCE_DIR}/cmake/CpktMiscValidate.cmake"
+  "${_stage_root}/lib/cmake/CpktMisc/Validate.cmake")
 file(GLOB pcs "${_stage_root}/lib/pkgconfig/*.pc")
 foreach(pc IN LISTS pcs)
   file(READ "${pc}" content)
