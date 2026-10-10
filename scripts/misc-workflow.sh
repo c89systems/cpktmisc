@@ -13,7 +13,6 @@ while [ "$#" -gt 0 ]; do
   shift 2
 done
 export GROUP=misc
-cpkt_locked "${original_arguments[@]}"
 case "$action" in
   prerelease-live)
     [ "${CPKT_LIVE_CHECKS:-0}" = 1 ] || cpkt_fail 'prerelease-live requires CPKT_LIVE_CHECKS=1'

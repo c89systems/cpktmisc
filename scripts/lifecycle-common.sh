@@ -10,6 +10,9 @@ cpkt_root=$(CDPATH= cd -- "$cpkt_scripts/.." && pwd)
 cpkt_cmake=${CMAKE:-cmake}
 cpkt_ctest=${CTEST:-ctest}
 
+cpkt_default_preset() {
+  if [ "$(uname -s)" = Darwin ]; then printf 'arm64-apple-darwin-debug\n'; else printf 'debug\n'; fi
+}
 cpkt_fail() {
   printf 'cpkt: %s\n' "$*" >&2
   exit 2
@@ -51,16 +54,21 @@ cpkt_cache_value() {
 # Shared caches are the declared global cpkt cache. Explicit local overrides
 # must stay in this checkout's disposable state, never another checkout.
 cpkt_validate_cache_location() {
-  local path=$1 workspace parent owner global
+  local path=$1 workspace parent owner source_owner global
   cpkt_validate_mutation_path "$path"
-  workspace=$(git -C "$cpkt_root" rev-parse --show-toplevel 2>/dev/null) || workspace=$cpkt_root
+  workspace=$cpkt_root
   parent=$path
   while [ ! -d "$parent" ] && [ "$parent" != / ]; do
     parent=${parent%/*}; [ -n "$parent" ] || parent=/
   done
   owner=$(git -C "$parent" rev-parse --show-toplevel 2>/dev/null) || owner=
-  if [ -n "$owner" ] && [ "$owner" != "$workspace" ]; then
+  source_owner=$(git -C "$workspace" rev-parse --show-toplevel 2>/dev/null) || source_owner=
+  if [ -n "$owner" ] && [ "$owner" != "$source_owner" ]; then
     cpkt_fail "cache belongs to another checkout: $path"
+  fi
+  case "$path" in "$workspace/build"|"$workspace/build/"*|"$workspace/.cache"|"$workspace/.cache/"*) return ;; esac
+  if [ -n "$owner" ] && [ "$owner" != "$workspace" ]; then
+    cpkt_fail "cache belongs to an enclosing checkout: $path"
   fi
   global=${XDG_CACHE_HOME:-${HOME:?HOME is required}/.cache}/cpkt
   case "$path" in
@@ -112,11 +120,4 @@ cpkt_require_core() {
   "$cpkt_cmake" "-DCPKT_REPO_ROOT=$cpkt_root" "-DCPKT_CORE_TARGET=$cpkt_target" \
     -DCPKT_CORE_ACTION=validate -P "$cpkt_root/cmake/core-dependency.cmake" ||
     cpkt_fail "published core prerequisite is missing or invalid; run make deps-core PRESET=$preset"
-}
-
-cpkt_locked() {
-  if [ -z "${CPKT_OPERATION_FD:-}" ]; then
-    exec bash "$cpkt_scripts/operation.sh" --root "$cpkt_root" --group "${GROUP:-all}" -- bash "$0" "$@"
-  fi
-  bash "$cpkt_scripts/operation.sh" --root "$cpkt_root" --group "${GROUP:-all}" --check
 }

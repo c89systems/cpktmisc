@@ -16,6 +16,11 @@ Public headers keep the `<cpkt/...>` namespace and existing facade library names
 Shared-library ABI majors retain their existing identities. Repository release
 versions are independent of those ABI majors.
 
+`cpkt_audio` is a C89 facade over miniaudio. `cpkt_sus` is a C89 facade over a CPU-only whisper.cpp/ggml build.
+NULL or empty cached-model name defaults to `tiny`. The `cpktxscribe` shell exposes the same
+default and a `--cache-dir DIR` option. Model acquisition is explicit through the
+cached-model constructor; the local-path constructor reads only the supplied file.
+
 ## Independent repositories
 
 | Repository | Scope | Prerequisite |
@@ -43,10 +48,10 @@ complete pinned compiler collection. LLVM/Clang, clangd, clang-format, Valgrind
 and QEMU are host tools; Darwin cross builds require osxcross and its Apple SDK.
 The configured concurrency limit remains eight locally and two on native Darwin.
 
-Lifecycle alignment is in progress. The published-core prerequisite and cleanup
-foundation is available; the remaining component and delivery controllers still
-need their native cutover. See [the migration ledger](docs/lifecycle-migration.md)
-before attempting the component build and test phase. Verify the foundation with:
+The native lifecycle uses Make, Bash, CMake and CTest. Ordinary `build` and `test`
+use native Debug; explicit matrix commands select Linux Release lanes. See
+[the cutover record](docs/lifecycle-migration.md). Verify ownership and lifecycle
+boundaries without compiling the product with:
 
 ```sh
 make test-lifecycle

@@ -5,7 +5,7 @@ export PYTHONDONTWRITEBYTECODE := 1
 .NOTPARALLEL:
 MAKEFLAGS += --no-builtin-rules
 GROUP ?= all
-PRESET ?= debug
+PRESET ?= $(if $(filter Darwin,$(shell uname -s)),arm64-apple-darwin-debug,debug)
 SCOPE ?=
 DEPENDENCY ?=
 PRESET_EXPLICIT := $(if $(filter command line environment environment override,$(origin PRESET)),yes,no)
@@ -22,14 +22,14 @@ help:
 	@printf '  %-30s %s\n' 'deps-debug' 'Configure the host debug dependency/build graph.'
 	@printf '  %-30s %s\n' 'deps-release' 'Configure all shipped Linux release dependency/build graphs.'
 	@printf '  %-30s %s\n' 'deps-cross' 'Configure cross release dependency/build graphs.'
-	@printf '  %-30s %s\n' 'build' 'Build this repository for six Linux Release targets; GROUP/PRESET selects one.'
+	@printf '  %-30s %s\n' 'build' 'Build native Debug by default; PRESET selects a target/configuration.'
 	@printf '  %-30s %s\n' 'build-debug' 'Build the host debug preset.'
 	@printf '  %-30s %s\n' 'build-release' 'Build this repository for six Linux Release targets (or explicit PRESET).'
 	@printf '  %-30s %s\n' 'build-host' 'Alias for build-debug.'
 	@printf '  %-30s %s\n' 'cross-build' 'Alias for build-release.'
 	@printf '  %-30s %s\n' 'debug' 'Build and test the host debug preset.'
 	@printf '\nTests:\n'
-	@printf '  %-30s %s\n' 'test' 'Build and test six Linux Release targets; GROUP/PRESET selects one.'
+	@printf '  %-30s %s\n' 'test' 'Build and test native Debug by default; PRESET selects a lane.'
 	@printf '  %-30s %s\n' 'test-debug' 'Run the host debug tests.'
 	@printf '  %-30s %s\n' 'test-host' 'Alias for test-debug.'
 	@printf '  %-30s %s\n' 'test-cross' 'Run release preset tests for cross-capable targets.'
@@ -68,7 +68,7 @@ help:
 	@printf '  %-30s %s\n' 'release-matrix' 'Build, package, checksum, and verify binary release artifacts.'
 	@printf '  %-30s %s\n' 'release-final-matrix' 'Run the final binary and clean source-archive release gate.'
 	@printf '  %-30s %s\n' 'finalize-slice' 'Format and run the narrow local pre-commit gate.'
-	@printf '  %-30s %s\n' 'lifecycle-version-contract' 'Run pre-clean release version checks using the reserved temp tag.'
+	@printf '  %-30s %s\n' 'lifecycle-version-contract' 'Verify the final signed commit and exact lightweight tag without mutation.'
 	@printf '  %-30s %s\n' 'release' 'Run the clean final binary and source-archive release gate.'
 	@printf '  %-30s %s\n' 'print-release-version' 'Print the version used by package and release artifacts.'
 	@printf '  %-30s %s\n' 'format' 'Format project-owned C, C++ and header files with clang-format.'
@@ -76,10 +76,10 @@ help:
 	@printf '\nCleanup:\n'
 	@printf '  %-30s %s\n' 'clean' 'Remove generated build, cache, and dist output.'
 	@printf '  %-30s %s\n' 'clean-dist' 'Remove only release artifacts under dist/.'
-	@printf '\nSelection: unqualified build/test retain six Linux Release targets; selected build/test use native debug by default.\nSelected packaging requires explicit Release PRESET, writes only build/, and uses the exact pinned published core SDK.\nRelease/matrix/source gates reject narrowing before clean. Formatting stays global. Local jobs=8, native Darwin jobs=2; explicit configured limits are honored.\n'
+	@printf '\nSelection: build/test use native Debug; build-release/test-cross cover six Linux Release targets.\nSelected packaging requires explicit Release PRESET, writes only build/, and uses the exact pinned published core SDK.\nRelease/matrix/source gates reject narrowing before clean. Formatting stays global. Local jobs=8, native Darwin jobs=2; explicit configured limits are honored.\n'
 	@printf '  %-30s %s\n' 'test-darwin-native' 'Native Darwin source/runtime proof (Apple tools, jobs=2).'
 	@printf '  %-30s %s\n' 'test-darwin-sdk' 'Execute supplied Darwin SDK combinations without changing libraries.'
-	@printf '  %-30s %s\n' 'test-github-actions-contracts' 'Offline host Bash, workflow and handoff fixtures.'
+	@printf '  %-30s %s\n' 'test-github-actions-contracts' 'Offline checks for optional native diagnostic workflows.'
 
 print-release-version:
 	@bash scripts/release-version.sh "$(CURDIR)"

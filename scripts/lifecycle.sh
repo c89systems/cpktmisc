@@ -6,7 +6,7 @@ source "$(dirname -- "${BASH_SOURCE[0]}")/lifecycle-common.sh"
 action=$1
 shift
 group=${GROUP:-all}
-preset=${PRESET:-debug}
+preset=${PRESET:-$(cpkt_default_preset)}
 preset_explicit=no
 scope=${SCOPE:-}
 scope_explicit=no
@@ -44,7 +44,7 @@ if [ "$scope_explicit" = yes ] && [ -n "$expected_scope" ] && [ "$scope" != "$ex
 fi
 if [ -n "$expected_scope" ]; then scope="$expected_scope"; fi
 case "$action" in
-  debug|test-debug|test-host|build-debug|build-host|clangd-surface|finalize-slice|valgrind|fuzz|fuzz-smoke|fuzz-long|examples|e2e-postgres|test-e2e)
+  debug|test-debug|test-host|build-debug|build-host|clangd-surface|finalize-slice|valgrind|fuzz|fuzz-smoke|fuzz-long|examples)
     case "$preset" in debug|arm64-apple-darwin-debug) ;; *) cpkt_fail "$action requires native Debug PRESET" ;; esac ;;
 esac
 case "$action" in
@@ -58,7 +58,6 @@ case "$action" in
     fi ;;
   format|format-check) [ -z "$scope" ] || cpkt_fail 'formatting does not accept SCOPE' ;;
   deps) [ -n "$dependency" ] || cpkt_fail 'deps requires DEPENDENCY=<name>' ;;
-  e2e-postgres|test-e2e|dev-*) [ "$cpkt_owner" = db ] || cpkt_fail 'database operations require cpktdb' ;;
   fuzz*) [ "$cpkt_owner" != db ] || cpkt_fail 'db fuzz is unsupported' ;;
   example-*|e2e-sus|e2e-cpktxscribe|cpktxscribe) [ "$cpkt_owner" = misc ] || cpkt_fail 'audio/speech operations require cpktmisc' ;;
 esac
@@ -67,17 +66,14 @@ case "$action" in
   build*|test|test-debug|test-host|debug|deps|deps-all|deps-debug|finalize-slice|clangd-surface|examples|valgrind|fuzz*)
     cpkt_require_core ;;
 esac
-case "$action" in
-  format|format-check|clean|clean-dist|deps-core) ;;
-  *) cpkt_locked "$action" --group "$group" --preset "$preset" --preset-explicit "$preset_explicit" \
-    --scope "$scope" --scope-explicit "$scope_explicit" --dependency "$dependency" ;;
-esac
 
 run_build() { bash "$cpkt_scripts/build.sh" "$@" --group "$group" --preset "$preset"; }
 run_action() { bash "$cpkt_scripts/lifecycle.sh" "$1" --group "$group" --preset "$preset" --preset-explicit no; }
 
 case "$action" in
-  build|build-release|test|test-cross|cross-build|cross-test)
+  build) run_build build ;;
+  test) run_build test ;;
+  build-release|test-cross|cross-build|cross-test)
     mode=build
     case "$action" in test|test-cross|cross-test) mode=test ;; esac
     if [ "$group" != all ] || [ "$preset_explicit" = yes ]; then
@@ -127,10 +123,6 @@ case "$action" in
   lifecycle-version-contract) bash "$cpkt_scripts/version-contract.sh" check ;;
   deps-core) bash "$cpkt_scripts/core-dependency.sh" --target "$cpkt_target" ;;
   test-darwin-native|test-darwin-sdk) bash "$cpkt_scripts/darwin.sh" "$action" ;;
-  test-github-actions-contracts) python3 "$cpkt_root/tests/github_actions_contract_test.py" ;;
-  e2e-postgres|test-e2e)
-    run_build build --target cpkt_postgres_integration_test
-    bash "$cpkt_scripts/test-e2e.sh" "$cpkt_binary/cpkt_postgres_integration_test" ;;
-  dev-*) bash "$cpkt_scripts/devenv.sh" "${action#dev-}" ;;
+  test-github-actions-contracts) run_build test --regex github_actions_contracts ;;
   *) bash "$cpkt_scripts/misc-workflow.sh" "$action" --preset "$preset" --preset-explicit "$preset_explicit" ;;
 esac

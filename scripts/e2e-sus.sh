@@ -4,10 +4,6 @@ set -euo pipefail
 repo_root=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)
 
 case ${GROUP:-misc} in misc|all) ;; *) printf 'this operation requires GROUP=misc|all\n' >&2; exit 2 ;; esac
-if [[ -z ${CPKT_OPERATION_FD:-} ]]; then
-  exec bash "$repo_root/scripts/operation.sh" --group misc -- bash "$0" "$@"
-fi
-bash "$repo_root/scripts/operation.sh" --group misc --check
 test_bin=${1:-"$repo_root/build/x86_64-linux-gnu/misc/Debug/cpkt_sus_audio_integration_test"}
 build_dir=${2:-"$repo_root/build/x86_64-linux-gnu/misc/Debug"}
 audio_url=${CPKT_SUS_E2E_AUDIO_URL:-"https://pkt.systems/trajectory/assets/narration/intro/intro.mp3"}

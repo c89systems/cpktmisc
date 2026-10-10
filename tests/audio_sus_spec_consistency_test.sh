@@ -43,4 +43,4 @@ assert_file_contains "$readme" '`cpkt_sus` is a C89 facade over a CPU-only whisp
 assert_file_contains "$spec" 'miniaudio license text when miniaudio source or binaries are bundled' 'audio/sus spec'
 assert_file_contains "$spec" 'whisper.cpp/ggml license text when whisper.cpp/ggml source or binaries are' 'audio/sus spec'
 assert_file_contains "$spec" 'Apache-2.0 license/provenance for KBLab model-cache entries' 'audio/sus spec'
-python3 "$source_dir/tests/audio_sus_package_policy_test.py" "$source_dir"
+cmake "-DCPKT_ROOT=$source_dir" -P "$source_dir/tests/audio_sus_package_policy_test.cmake"

@@ -3,12 +3,12 @@ set -euo pipefail
 
 script_dir=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
 repo_root=${1:-$(CDPATH= cd -- "$script_dir/.." && pwd)}
-deps_file="$repo_root/cmake/CpktDependencies.cmake"
 
 # Check each owned recipe separately: another dependency's PIC flags cannot
 # hide a missing flag in the static archive used by a shared consumer.
 require_pic() {
   local recipe=$1 needle=$2 expected=$3
+  local deps_file="$repo_root/cmake/dependencies/${recipe#cpkt_add_}.cmake"
   if ! awk -v recipe="$recipe" -v needle="$needle" -v expected="$expected" '
     $0 == "function(" recipe ")" { inside = 1; next }
     inside && /^endfunction/ { inside = 0 }

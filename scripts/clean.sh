@@ -68,6 +68,9 @@ else
     directory=$("$cpkt_cmake" "-DCPKT_REPO_ROOT=$cpkt_root" -DCPKT_INFO=component-directory "-DCPKT_DEPENDENCY=$component" -P "$cpkt_root/cmake/lifecycle-info.cmake")
     for target in "$cpkt_root/.cache/deps/"*; do remove_generated "$target/$directory"; done
     for target in "$cpkt_root/.cache/deps-build/"*; do remove_generated "$target/$directory"; done
-    for target in "$cpkt_root/.cache/dependency-contracts/"*; do remove_generated "$target/$component.txt"; done
+    for target in "$cpkt_root/.cache/dependency-contracts/"*; do
+      remove_generated "$target/$component.inputs"
+      remove_generated "$target/$component.complete"
+    done
   done < <(cpkt_info components)
 fi

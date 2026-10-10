@@ -1,5 +1,9 @@
 # Core provisions explicitly before configuration. Optional graphs only discover.
 set(_target "$ENV{CPKT_RESOLVED_TARGET}")
+if(NOT _target AND CPKT_TARGET_ARCH AND CPKT_TARGET_LIBC)
+  set(_target "${CPKT_TARGET_ARCH}-linux-${CPKT_TARGET_LIBC}")
+endif()
+list(APPEND CMAKE_TRY_COMPILE_PLATFORM_VARIABLES CPKT_TARGET_ARCH CPKT_TARGET_LIBC)
 if(NOT _target MATCHES "^(x86_64|aarch64|armhf)-linux-(gnu|musl)$")
   message(FATAL_ERROR "Discovery-only Linux toolchain needs CPKT_RESOLVED_TARGET")
 endif()

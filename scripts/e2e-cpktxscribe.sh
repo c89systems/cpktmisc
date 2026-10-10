@@ -2,10 +2,6 @@
 set -euo pipefail
 repo_root=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
 case ${GROUP:-misc} in misc|all) ;; *) printf 'this operation requires GROUP=misc|all\n' >&2; exit 2 ;; esac
-if [[ -z ${CPKT_OPERATION_FD:-} ]]; then
-  exec bash "$repo_root/scripts/operation.sh" --group misc -- bash "$0" "$@"
-fi
-bash "$repo_root/scripts/operation.sh" --group misc --check
 
 tool="${1:?cpktxscribe binary is required}"
 build_dir="${2:?build directory is required}"

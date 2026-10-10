@@ -8,7 +8,9 @@ foreach(script clean lifecycle-common mutation-paths require-host-bash)
   file(COPY_FILE "${CPKT_ROOT}/scripts/${script}.sh" "${repo}/scripts/${script}.sh")
 endforeach()
 file(COPY_FILE "${CPKT_ROOT}/cmake/lifecycle-info.cmake" "${repo}/cmake/lifecycle-info.cmake")
-file(WRITE "${repo}/cmake/components.json" "{\"repository_group\":\"misc\"}")
+file(WRITE "${repo}/cmake/components.json" [=[{"repository_group":"misc","components":{
+  "libpng":{"group":"misc","directory":"libpng"},
+  "zlib":{"group":"core","directory":"zlib"}}}]=])
 file(WRITE "${work}/global/cpkt/deps/archive" "verified shared bytes\n")
 foreach(path build/.hidden build/control/.operation.sock .cache/.hidden dist/.hidden)
   file(WRITE "${repo}/${path}" "disposable\n")
@@ -36,3 +38,27 @@ file(REMOVE "${repo}/.cache")
 cpkt_test_failure("graph/stage cleanup must remain under build"
   ${command} graph --path "${work}/global")
 cpkt_test_failure("not owned by this repository" ${command} clean --group core)
+# Selected cleanup removes its native producer state while preserving imports.
+set(owned build/example-target/misc/producer/cache
+  .cache/deps/example-target/libpng/install/library
+  .cache/deps-build/example-target/libpng/build/object
+  .cache/dependency-contracts/example-target/libpng.inputs
+  .cache/dependency-contracts/example-target/libpng.complete)
+set(borrowed build/example-target/core/cache .cache/cpkt/example-target/install/core.json
+  .cache/deps/example-target/zlib/install/library
+  .cache/dependency-contracts/example-target/zlib.inputs
+  .cache/dependency-contracts/example-target/zlib.complete)
+foreach(path IN LISTS owned borrowed)
+  file(WRITE "${repo}/${path}" "fixture\n")
+endforeach()
+cpkt_test_command(${command} clean --group misc)
+foreach(path IN LISTS owned)
+  if(EXISTS "${repo}/${path}")
+    message(FATAL_ERROR "Selected cleanup retained owned state: ${path}")
+  endif()
+endforeach()
+foreach(path IN LISTS borrowed)
+  if(NOT EXISTS "${repo}/${path}")
+    message(FATAL_ERROR "Selected cleanup removed imported state: ${path}")
+  endif()
+endforeach()

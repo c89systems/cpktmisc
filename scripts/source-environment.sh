@@ -14,6 +14,10 @@ source_shared=${CPKT_DEPENDENCY_CACHE:-}
 if [ -z "$source_shared" ]; then
   source_shared=$(cpkt_cache_value CPKT_DEPENDENCY_CACHE "$source_cache") || source_shared="${XDG_CACHE_HOME:-$HOME/.cache}/cpkt/deps"
 fi
+cpkt_validate_cache_location "$source_shared"
+source_global="${XDG_CACHE_HOME:-$HOME/.cache}/cpkt"
+case "$source_global" in "$cpkt_root/build/"*|"$cpkt_root/.cache/"*) cpkt_fail 'global source cache cannot be checkout-local' ;; esac
+case "$source_shared" in "$source_global/"*) ;; *) cpkt_fail 'source reconstruction requires the global cpkt archive cache; checkout-local caches cannot be borrowed' ;; esac
 source_generator=${CPKT_SOURCE_GENERATOR:-}
 if [ -z "$source_generator" ]; then
   source_generator=$(cpkt_cache_value CMAKE_GENERATOR "$source_cache") || source_generator=Ninja

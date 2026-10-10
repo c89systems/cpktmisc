@@ -1,0 +1,7 @@
+cmake_minimum_required(VERSION 3.21)
+file(READ "${CPKT_REPORT}" report)
+string(JSON pending LENGTH "${report}" pending)
+string(JSON bound LENGTH "${report}" bound)
+if(pending OR bound LESS 1)
+  message(FATAL_ERROR "Public C89 coverage is incomplete: ${pending} pending; ${bound} bound; ${CPKT_REPORT}")
+endif()

@@ -3,7 +3,8 @@ if(NOT EXISTS "${CMAKE_SOURCE_DIR}/tests/opcua_types_fixture.bsd")
   message(FATAL_ERROR "Required OPC UA test schema missing: tests/opcua_types_fixture.bsd")
 endif()
 include(cmake/CpktGroups.cmake)
-include(cmake/CpktOperation.cmake)
+include(cmake/CpktMutationPaths.cmake)
+cpkt_validate_mutation_paths("${CMAKE_BINARY_DIR}/CMakeCache.txt")
 execute_process(
   COMMAND "${CMAKE_SOURCE_DIR}/scripts/release-version.sh" "${CMAKE_SOURCE_DIR}"
   OUTPUT_VARIABLE CPKT_PROJECT_VERSION
@@ -16,7 +17,7 @@ endif()
 project(cpktmisc VERSION "${CPKT_PROJECT_VERSION}" LANGUAGES C CXX)
 include(cmake/CpktABIVersions.cmake)
 if(CMAKE_SYSTEM_NAME STREQUAL "Darwin" AND CPKT_OSXCROSS_ROOT)
-  set(_cpkt_osxcross_link_launcher "${_cpkt_build_launcher}")
+  set(_cpkt_osxcross_link_launcher "")
   foreach(_cpkt_argument IN ITEMS "${CMAKE_COMMAND}" "-E" "env"
         "LD_LIBRARY_PATH=${CPKT_OSXCROSS_ROOT}/lib:$ENV{LD_LIBRARY_PATH}")
     string(REPLACE "'" "'\"'\"'" _cpkt_quoted_argument "${_cpkt_argument}")
@@ -115,76 +116,7 @@ function(cpkt_configure_c89_target target_name)
           -pedantic-errors)
   endif()
 endfunction()
-function(cpkt_apply_auth_export_catalog target_name catalog_name)
-  if(NOT TARGET "${target_name}")
-    return()
-  endif()
-  set(_catalog "${CMAKE_SOURCE_DIR}/cmake/exports/${catalog_name}.txt")
-  set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS "${_catalog}")
-  file(STRINGS "${_catalog}" _symbols REGEX "^cpkt_")
-  if(NOT _symbols)
-    message(FATAL_ERROR "empty authentication export catalog: ${_catalog}")
-  endif()
-  if(CMAKE_SYSTEM_NAME STREQUAL "Darwin")
-    set(_linker_file "${CMAKE_BINARY_DIR}/${catalog_name}.exports")
-    set(_linker_contents "")
-    foreach(_symbol IN LISTS _symbols)
-      string(APPEND _linker_contents "_${_symbol}\n")
-    endforeach()
-    target_link_options(${target_name} PRIVATE
-          "-Wl,-exported_symbols_list,${_linker_file}")
-  elseif(CMAKE_SYSTEM_NAME STREQUAL "Linux")
-    set(_linker_file "${CMAKE_BINARY_DIR}/${catalog_name}.map")
-    set(_linker_contents "{\n  global:\n")
-    foreach(_symbol IN LISTS _symbols)
-      string(APPEND _linker_contents "    ${_symbol};\n")
-    endforeach()
-    string(APPEND _linker_contents "  local: *;\n};\n")
-    target_link_options(${target_name} PRIVATE
-          "-Wl,--version-script,${_linker_file}" "-Wl,--exclude-libs,ALL")
-  endif()
-  if(DEFINED _linker_file)
-    include("${CMAKE_SOURCE_DIR}/cmake/CpktMutationPaths.cmake")
-    cpkt_register_generated_outputs("${_linker_file}")
-    if(EXISTS "${_linker_file}")
-      file(READ "${_linker_file}" _previous_linker_contents)
-    endif()
-    if(NOT "${_previous_linker_contents}" STREQUAL "${_linker_contents}")
-      file(WRITE "${_linker_file}" "${_linker_contents}")
-    endif()
-    set_property(TARGET ${target_name} APPEND PROPERTY LINK_DEPENDS
-          "${_linker_file}")
-  endif()
-endfunction()
-function(cpkt_configure_c89_lua_native_header_target target_name)
-  if(NOT TARGET "${target_name}")
-    return()
-  endif()
-  cpkt_configure_c89_target(${target_name})
-  if(CMAKE_C_COMPILER_ID MATCHES "GNU|Clang|AppleClang")
-    target_compile_options(${target_name} PRIVATE
-          -Wno-long-long
-          -DLLONG_MAX=9223372036854775807LL
-          -DLLONG_MIN=-9223372036854775807LL-1LL
-          -DULLONG_MAX=18446744073709551615ULL)
-  endif()
-endfunction()
-function(cpkt_add_lua_runtime_mock_test target_name source_name)
-  cpkt_inventory_selected(targets "${target_name}" _selected)
-  if(NOT _selected)
-    return()
-  endif()
-  cpkt_group_add_executable(${target_name}
-      src/lua_runtime.c
-      tests/lua_mock/lua_mock.c
-      ${source_name})
-  cpkt_group_use_local_runtime(${target_name})
-  target_compile_options(${target_name} PRIVATE -std=c99)
-  cpkt_add_repo_warning_errors(${target_name})
-  target_include_directories(${target_name} PRIVATE
-      "${CMAKE_SOURCE_DIR}/tests/lua_mock/include"
-      "${CMAKE_SOURCE_DIR}/include")
-endfunction()
+include(cmake/CpktExports.cmake)
 function(cpkt_configure_afl_target target_name)
   if(NOT TARGET "${target_name}")
     return()
@@ -232,39 +164,15 @@ function(cpkt_register_local_runtime_checks)
       list(APPEND _cpkt_local_executables "$<TARGET_FILE:${_cpkt_target}>")
     endif()
   endforeach()
-  set(_cpkt_runtime_policy_name local_executable_runtime_policy)
-  if(NOT CPKT_GROUP STREQUAL "core")
-    string(APPEND _cpkt_runtime_policy_name "_${CPKT_GROUP}")
-  endif()
-  cpkt_group_add_test(NAME ${_cpkt_runtime_policy_name}
+  cpkt_group_add_test(NAME local_executable_runtime_policy_misc
       COMMAND bash "${CMAKE_SOURCE_DIR}/tests/local_executable_runtime_policy_test.sh"
         "${CPKT_RUNTIME_LOADER}" ${_cpkt_local_executables})
 endfunction()
 if(NOT CPKT_DEPENDENCY_PRODUCER)
-  add_custom_target(cpkt_operation_guard
-    COMMAND bash "${CMAKE_SOURCE_DIR}/scripts/operation.sh"
-      --root "${CMAKE_SOURCE_DIR}" --group "${CPKT_GROUP}" --check
-    VERBATIM)
   cmake_language(DEFER CALL cpkt_validate_owned_graph)
 endif()
 if(CPKT_BUILD_TESTS AND CPKT_NATIVE_BOOTLIN_RUNTIME)
   cmake_language(DEFER CALL cpkt_register_local_runtime_checks)
-endif()
-if(CPKT_FACADE_ONLY AND CPKT_ENABLE_FUZZING AND CPKT_GROUP STREQUAL "core")
-  foreach(_cpkt_facade_only_cache_var
-        CPKT_DIST_DIR
-        CPKT_TARGET_ARCH
-        CPKT_TARGET_LIBC
-        CPKT_TARGET_OS)
-    if(DEFINED ${_cpkt_facade_only_cache_var})
-      set(_cpkt_facade_only_ignored "${${_cpkt_facade_only_cache_var}}")
-    endif()
-  endforeach()
-  unset(_cpkt_facade_only_ignored)
-  if(NOT CPKT_BUILD_TESTS)
-    message(FATAL_ERROR "CPKT_FACADE_ONLY requires CPKT_BUILD_TESTS=ON")
-  endif()
-  return()
 endif()
 if(DEFINED CPKT_BUILD_STATIC AND NOT CPKT_BUILD_STATIC)
   message(FATAL_ERROR "cpkt release bundles always include static and shared artifacts; CPKT_BUILD_STATIC cannot be disabled.")
@@ -281,9 +189,6 @@ set(CPKT_MINIAUDIO_VERSION "0.11.25" CACHE STRING "Pinned miniaudio release.")
 set(CPKT_WHISPER_VERSION "v1.9.4" CACHE STRING "Pinned whisper.cpp release.")
 set(CPKT_OPEN62541_VERSION "1.5.8" CACHE STRING "Pinned open62541 release.")
 set(CPKT_OPEN62541_PATCHSET "mqtt-prefix-packet-headers-crypto-logging-24" CACHE STRING "cpkt open62541 patchset identity." FORCE)
-# ABI declarations live in cmake/CpktABIVersions.cmake.
-# ABI declarations live in cmake/CpktABIVersions.cmake.
-# ABI declarations live in cmake/CpktABIVersions.cmake.
 # ABI declarations live in cmake/CpktABIVersions.cmake.
 if(NOT CPKT_SUS_CPU_ONLY)
   message(FATAL_ERROR "CPKT_SUS_CPU_ONLY=OFF is reserved for a later GPU-backend packaging phase")
@@ -438,18 +343,6 @@ if(CPKT_ALLOW_DEPENDENCY_ROOT_OVERRIDE
 endif()
 include(cmake/CpktComponentInventory.cmake)
 cpkt_select_components(CPKT_ACTIVE_COMPONENTS)
-if(CPKT_GROUP MATCHES "^(db|misc)$")
-  if(NOT CPKT_PREREQUISITE_CONFIGURATION)
-    set(CPKT_PREREQUISITE_CONFIGURATION "${CMAKE_BUILD_TYPE}")
-  endif()
-  execute_process(COMMAND "${CPKT_HOST_PYTHON_EXECUTABLE}" "${CMAKE_SOURCE_DIR}/scripts/cpkt_receipt_cli.py"
-      --root "${CMAKE_SOURCE_DIR}" --group "${CPKT_GROUP}" --target "${CPKT_TARGET_ID}"
-      --configuration "${CPKT_PREREQUISITE_CONFIGURATION}" --preset "$ENV{CPKT_PRESET}"
-      RESULT_VARIABLE _core_status)
-  if(NOT _core_status EQUAL 0)
-    message(FATAL_ERROR "Core prerequisite is not development-ready")
-  endif()
-endif()
 if(CPKT_ENABLE_FUZZING)
   if(NOT CPKT_AFLPP_ROOT)
     message(FATAL_ERROR "CPKT_ENABLE_FUZZING requires the pinned AFL++ toolchain")
@@ -465,6 +358,7 @@ if(CPKT_DEPENDENCY_PRODUCER)
   return()
 endif()
 find_program(CPKT_PYTHON3_EXECUTABLE NAMES python3 REQUIRED)
+set(CPKT_HOST_PYTHON_EXECUTABLE "${CPKT_PYTHON3_EXECUTABLE}" CACHE FILEPATH "Host interpreter for declared source/data generators." FORCE)
 set(Python3_EXECUTABLE "${CPKT_PYTHON3_EXECUTABLE}")
 cpkt_group_add_library(cpkt_audio_static STATIC src/audio.c)
 cpkt_configure_c89_target(cpkt_audio_static)
@@ -680,9 +574,29 @@ cpkt_group_add_custom_target(cpkt_opcua_types_generate DEPENDS
   "${CPKT_OPCUA_GENERATED_DIR}/opcua_nodestore_metadata.inc"
   "${CPKT_OPCUA_GENERATED_DIR}/opcua_native_nodestore.h")
 set(_cpkt_opcua_public_api_command "${Python3_EXECUTABLE}" "${CMAKE_SOURCE_DIR}/tools/opcua/public_api.py" --compiler "${CMAKE_C_COMPILER}" --platform "${CPKT_TARGET_OS}" --native-include "${CPKT_EXTERNAL_ROOT}/open62541/install/include" --facade-include "${CMAKE_SOURCE_DIR}/include" --generated-include "${CPKT_OPCUA_GENERATED_DIR}" --contract "${CMAKE_SOURCE_DIR}/tools/opcua/public_api_contract.json" --report "${CMAKE_CURRENT_BINARY_DIR}/opcua-public-api-coverage.json")
+file(GLOB _cpkt_opcua_facade_headers CONFIGURE_DEPENDS "${CMAKE_SOURCE_DIR}/include/cpkt/opcua*.h")
+file(GLOB_RECURSE _cpkt_opcua_native_headers CONFIGURE_DEPENDS
+  "${CPKT_EXTERNAL_ROOT}/open62541/install/include/open62541/*.h")
+file(CONFIGURE OUTPUT "${CMAKE_BINARY_DIR}/opcua-public-api.inputs"
+  CONTENT "${CMAKE_C_COMPILER}\n${CPKT_TARGET_OS}\n${CPKT_EXTERNAL_ROOT}\n" @ONLY)
+add_custom_command(OUTPUT "${CMAKE_BINARY_DIR}/opcua-public-api-coverage.json"
+  COMMAND ${_cpkt_opcua_public_api_command}
+  DEPENDS cpkt_opcua_types_generate ${CPKT_OPCUA_GENERATED_OUTPUTS}
+    ${_cpkt_opcua_facade_headers} ${_cpkt_opcua_native_headers}
+    "${CMAKE_BINARY_DIR}/opcua-public-api.inputs"
+    "${CMAKE_SOURCE_DIR}/tools/opcua/public_api.py"
+    "${CMAKE_SOURCE_DIR}/scripts/generated_output_paths.py"
+    "${CMAKE_SOURCE_DIR}/tools/opcua/public_api_contract.json"
+  VERBATIM)
+add_custom_command(OUTPUT "${CMAKE_BINARY_DIR}/opcua-public-api.passed"
+  COMMAND "${CMAKE_COMMAND}" -E rm -f "${CMAKE_BINARY_DIR}/opcua-public-api.passed"
+  COMMAND "${CMAKE_COMMAND}" "-DCPKT_REPORT=${CMAKE_BINARY_DIR}/opcua-public-api-coverage.json"
+    -P "${CMAKE_SOURCE_DIR}/tests/opcua_public_api_contract_test.cmake"
+  COMMAND "${CMAKE_COMMAND}" -E touch "${CMAKE_BINARY_DIR}/opcua-public-api.passed"
+  DEPENDS "${CMAKE_BINARY_DIR}/opcua-public-api-coverage.json"
+    "${CMAKE_SOURCE_DIR}/tests/opcua_public_api_contract_test.cmake" VERBATIM)
 cpkt_group_add_custom_target(cpkt_opcua_public_api_complete
-  COMMAND ${_cpkt_opcua_public_api_command} --require-complete
-  DEPENDS cpkt_opcua_types_generate VERBATIM)
+  DEPENDS "${CMAKE_BINARY_DIR}/opcua-public-api.passed")
 set_source_files_properties("${CPKT_OPCUA_GENERATED_DIR}/opcua_native_format.c" PROPERTIES COMPILE_OPTIONS "-std=c99")
 set(CPKT_OPCUA_SOURCES src/opcua.c src/opcua_arrays.c src/opcua_browse.c src/opcua_client.c src/opcua_client_async.c src/opcua_client_attributes.c src/opcua_client_nodes.c src/opcua_client_values.c src/opcua_events.c src/opcua_files.c src/opcua_history.c src/opcua_identifiers.c src/opcua_logging.c src/opcua_methods.c src/opcua_pubsub.c src/opcua_server.c src/opcua_server_attributes.c src/opcua_server_nodes.c src/opcua_server_values.c src/opcua_subscriptions.c src/opcua_types.c src/opcua_value.c)
 cpkt_group_add_library(cpkt_opcua_static STATIC ${CPKT_OPCUA_SOURCES})
@@ -740,25 +654,40 @@ elseif(CMAKE_SYSTEM_NAME STREQUAL "Linux")
   cpkt_group_set_target_properties(cpkt_pdf_shared PROPERTIES BUILD_RPATH "$ORIGIN" INSTALL_RPATH "$ORIGIN" BUILD_WITH_INSTALL_RPATH ON)
 endif()
 if(CPKT_BUILD_TESTS)
+  cpkt_group_add_executable(cpkt_header_contract tests/header_contract.c)
+  cpkt_group_use_local_runtime(cpkt_header_contract)
+  cpkt_configure_c89_target(cpkt_header_contract)
+  cpkt_add_repo_warning_errors(cpkt_header_contract)
+  cpkt_group_add_executable(cpkt_sus_catalog_metadata tests/sus_catalog_metadata.c)
+  cpkt_group_use_local_runtime(cpkt_sus_catalog_metadata)
+  cpkt_configure_c89_target(cpkt_sus_catalog_metadata)
+  cpkt_add_repo_warning_errors(cpkt_sus_catalog_metadata)
+  cpkt_group_target_command(target_link_libraries cpkt_sus_catalog_metadata PRIVATE cpkt_sus_shared)
+  find_program(CPKT_CLANG_FORMAT_EXECUTABLE clang-format REQUIRED)
+  set(pdf_fixture "${CMAKE_BINARY_DIR}/generated/pdf-fixture")
+  add_custom_command(OUTPUT "${pdf_fixture}/include/cpkt/pdf.h" "${pdf_fixture}/src/pdf.c" "${pdf_fixture}/cmake/exports/cpkt_pdf.txt"
+    COMMAND "${CPKT_PYTHON3_EXECUTABLE}" "${CMAKE_SOURCE_DIR}/tools/generate_pdf_facade.py"
+      "${CPKT_DEPENDENCY_BUILD_ROOT}/libharu/src/include" --output "${pdf_fixture}"
+    COMMAND "${CPKT_CLANG_FORMAT_EXECUTABLE}" -i "${pdf_fixture}/include/cpkt/pdf.h" "${pdf_fixture}/src/pdf.c"
+    DEPENDS "${CMAKE_SOURCE_DIR}/tools/generate_pdf_facade.py" "${CMAKE_SOURCE_DIR}/.clang-format"
+      "${CPKT_DEPENDENCY_BUILD_ROOT}/libharu/src/include/hpdf.h" VERBATIM)
+  add_custom_target(cpkt_pdf_generation_fixture ALL
+    DEPENDS "${pdf_fixture}/include/cpkt/pdf.h" "${pdf_fixture}/src/pdf.c" "${pdf_fixture}/cmake/exports/cpkt_pdf.txt")
+  cpkt_group_add_test(NAME pdf_generation COMMAND "${CMAKE_COMMAND}"
+    "-DCPKT_SOURCE=${CMAKE_SOURCE_DIR}" "-DCPKT_GENERATED=${pdf_fixture}"
+    -P "${CMAKE_SOURCE_DIR}/tests/pdf_generation_test.cmake")
   include(cmake/CpktPreflightTests.cmake)
   cpkt_register_preflight_tests("${CMAKE_SOURCE_DIR}")
   if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
     # Fixture registration is shared in CpktPreflightTests.cmake.
     cpkt_group_set_tests_properties(sdk_runtime_loader PROPERTIES LABELS "packaging;smoke" TIMEOUT 30)
   endif()
-  cpkt_group_add_test(NAME package_isolation_build
-      COMMAND "${CPKT_HOST_PYTHON_EXECUTABLE}" "${CMAKE_SOURCE_DIR}/tests/package_isolation_build_test.py")
-  cpkt_group_add_test(NAME package_producer_reuse
-      COMMAND "${CPKT_HOST_PYTHON_EXECUTABLE}" "${CMAKE_SOURCE_DIR}/tests/package_producer_reuse_test.py")
   cpkt_group_add_test(NAME selected_test_executables
-      COMMAND "${Python3_EXECUTABLE}"
-        "${CMAKE_SOURCE_DIR}/tests/selected_test_executables_test.py"
+      COMMAND "${CMAKE_COMMAND}" -P "${CMAKE_SOURCE_DIR}/tests/selected_test_executables_test.cmake"
         "${CMAKE_SOURCE_DIR}")
   cpkt_group_set_tests_properties(selected_test_executables PROPERTIES LABELS "packaging;smoke" TIMEOUT 30)
   include(cmake/CpktTestPslog.cmake)
-  if(CPKT_SELECT_core OR CPKT_SELECT_misc)
-    cpkt_add_test_pslog()
-  endif()
+  cpkt_add_test_pslog()
   foreach(_cpkt_opcua_logging_linkage IN ITEMS static shared)
     cpkt_group_add_executable(cpkt_opcua_logging_${_cpkt_opcua_logging_linkage}_test
           tests/opcua_logging_test.c tests/opcua_logging_native_peer.c)
@@ -788,9 +717,8 @@ if(CPKT_BUILD_TESTS)
                 legacy)
       cpkt_group_set_tests_properties(opcua_logging_${_cpkt_opcua_logging_linkage}_late_attach PROPERTIES LABELS "facade;memcheck;integration;offline;opcua" TIMEOUT 90)
       cpkt_group_add_test(NAME opcua_logging_${_cpkt_opcua_logging_linkage}_output
-              COMMAND "${CPKT_PYTHON3_EXECUTABLE}"
-                "${CMAKE_SOURCE_DIR}/tests/opcua_logging_output_test.py"
-                ${CPKT_TEST_EXECUTABLE_PREFIX}
+              COMMAND "${CMAKE_COMMAND}" -P "${CMAKE_SOURCE_DIR}/tests/opcua_logging_output_test.cmake"
+                -- ${CPKT_TEST_EXECUTABLE_PREFIX}
                 "$<TARGET_FILE:cpkt_opcua_logging_${_cpkt_opcua_logging_linkage}_test>"
                 "${CMAKE_BINARY_DIR}/opcua-logging-${_cpkt_opcua_logging_linkage}-output.json5")
       cpkt_group_set_tests_properties(opcua_logging_${_cpkt_opcua_logging_linkage}_output PROPERTIES LABELS "integration;offline;opcua" TIMEOUT 30)
@@ -974,32 +902,6 @@ if(CPKT_BUILD_TESTS)
           cpkt_audio_static
           cpkt_sus_shared
         )
-    if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
-      set(_cpkt_postgresql_oauth_staging_paths)
-      foreach(_cpkt_postgresql_oauth_dependency IN ITEMS
-                cpkt::curl_shared cpkt::zlib_shared cpkt::openssl_ssl_shared
-                cpkt::libssh2_shared cpkt::nghttp2_shared cpkt::gssapi_krb5_shared
-                cpkt::openldap_shared cpkt::cyrus_sasl_shared)
-        cpkt_group_get_target_property(_cpkt_postgresql_oauth_dependency_location
-                  ${_cpkt_postgresql_oauth_dependency} IMPORTED_LOCATION)
-        get_filename_component(_cpkt_postgresql_oauth_dependency_dir
-                  "${_cpkt_postgresql_oauth_dependency_location}" DIRECTORY)
-        list(APPEND _cpkt_postgresql_oauth_staging_paths
-                  "${_cpkt_postgresql_oauth_dependency_dir}")
-      endforeach()
-      list(JOIN _cpkt_postgresql_oauth_staging_paths ":"
-              _cpkt_postgresql_oauth_staging_rpath)
-    endif()
-    if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
-      if(CPKT_TARGET_ID STREQUAL "armhf-linux-musl")
-      else()
-      endif()
-    endif()
-    cpkt_group_get_target_property(cpkt_sasl_native_include_dir cpkt::cyrus_sasl_static
-          INTERFACE_INCLUDE_DIRECTORIES)
-    if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
-    elseif(CMAKE_SYSTEM_NAME STREQUAL "Darwin")
-    endif()
     cpkt_group_add_executable(cpkt_pdf_facade_static_test tests/pdf_facade_test.c)
     cpkt_group_use_local_runtime(cpkt_pdf_facade_static_test)
     cpkt_group_target_command(target_compile_options cpkt_pdf_facade_static_test PRIVATE -std=c89)
@@ -1025,14 +927,19 @@ if(CPKT_BUILD_TESTS)
         )
   endif()
   cpkt_group_add_test(NAME opcua_types_generator
-      COMMAND "${Python3_EXECUTABLE}" "${CMAKE_SOURCE_DIR}/tests/opcua_types_generator_test.py"
+      COMMAND "${CMAKE_COMMAND}" -P "${CMAKE_SOURCE_DIR}/tests/opcua_types_generator_test.cmake"
         "${CMAKE_SOURCE_DIR}" "${CPKT_EXTERNAL_ROOT}/open62541/install/share/open62541"
         "${CMAKE_CURRENT_BINARY_DIR}")
   cpkt_group_set_tests_properties(opcua_types_generator PROPERTIES LABELS "opcua;packaging")
+  cpkt_group_set_property(TEST opcua_types_generator APPEND PROPERTY LABELS host-lifecycle)
+  cpkt_group_set_tests_properties(opcua_types_generator PROPERTIES TIMEOUT 240)
   cpkt_group_add_test(NAME opcua_public_api_contract
-      COMMAND ${_cpkt_opcua_public_api_command} --require-complete)
+      COMMAND "${CMAKE_COMMAND}" "-DCPKT_REPORT=${CMAKE_BINARY_DIR}/opcua-public-api-coverage.json"
+        -P "${CMAKE_SOURCE_DIR}/tests/opcua_public_api_contract_test.cmake")
+  add_dependencies(cpkt_opcua_static cpkt_opcua_public_api_complete)
+  add_dependencies(cpkt_opcua_shared cpkt_opcua_public_api_complete)
   cpkt_group_add_test(NAME opcua_public_api_contract_failures
-      COMMAND "${Python3_EXECUTABLE}" "${CMAKE_SOURCE_DIR}/tests/opcua_public_api_test.py"
+      COMMAND "${CMAKE_COMMAND}" -P "${CMAKE_SOURCE_DIR}/tests/opcua_public_api_test.cmake"
         "${CMAKE_SOURCE_DIR}" "${CMAKE_C_COMPILER}" "${CPKT_TARGET_OS}"
         "${CMAKE_CURRENT_BINARY_DIR}")
   cpkt_group_set_tests_properties(opcua_public_api_contract opcua_public_api_contract_failures PROPERTIES LABELS "opcua;packaging")
@@ -1040,7 +947,7 @@ if(CPKT_BUILD_TESTS)
     cpkt_group_add_test(NAME open62541_openssl_provenance
           COMMAND "${CMAKE_COMMAND}"
             "-DCPKT_OPEN62541_BUILD_ROOT=${CPKT_DEPENDENCY_BUILD_ROOT}/open62541"
-            "-DCPKT_OPENSSL_PREFIX=${CPKT_EXTERNAL_ROOT}/openssl/install"
+            "-DCPKT_OPENSSL_PREFIX=${CPKT_CORE_PREFIX}"
             "-DCPKT_SHARED_LIBRARY_SUFFIX=${CMAKE_SHARED_LIBRARY_SUFFIX}"
             -P "${CMAKE_SOURCE_DIR}/tests/open62541_openssl_provenance_test.cmake")
     cpkt_group_set_tests_properties(open62541_openssl_provenance PROPERTIES LABELS "packaging;opcua" TIMEOUT 30)
@@ -1122,7 +1029,7 @@ if(CPKT_BUILD_TESTS)
     endif()
   endif()
   cpkt_group_add_test(NAME opcua_types_exports_portability
-      COMMAND "${Python3_EXECUTABLE}" "${CMAKE_SOURCE_DIR}/tests/opcua_types_exports_portability_test.py"
+      COMMAND "${CMAKE_COMMAND}" -P "${CMAKE_SOURCE_DIR}/tests/opcua_types_exports_portability_test.cmake"
         "${CMAKE_SOURCE_DIR}" "${CMAKE_BINARY_DIR}" "${CMAKE_C_COMPILER}")
   cpkt_group_set_tests_properties(opcua_types_exports_portability PROPERTIES LABELS "packaging;opcua" TIMEOUT 30)
   foreach(_cpkt_types_linkage IN ITEMS static shared)
@@ -1142,7 +1049,7 @@ if(CPKT_BUILD_TESTS)
     cpkt_group_target_command(target_link_libraries cpkt_opcua_types_${_cpkt_types_linkage}_test PRIVATE
           cpkt_opcua_${_cpkt_types_linkage} Threads::Threads)
     cpkt_group_add_test(NAME opcua_types_exports_${_cpkt_types_linkage}
-          COMMAND "${Python3_EXECUTABLE}" "${CMAKE_SOURCE_DIR}/tests/opcua_types_exports_test.py"
+          COMMAND "${CMAKE_COMMAND}" -P "${CMAKE_SOURCE_DIR}/tests/opcua_types_exports_test.cmake"
             "${CMAKE_NM}" "${CMAKE_READELF}" "${CMAKE_SYSTEM_NAME}" "${CMAKE_C_COMPILER}" "$<TARGET_FILE:cpkt_opcua_${_cpkt_types_linkage}>"
             "${CMAKE_SOURCE_DIR}/src/opcua_facade_internal.h"
             "${CMAKE_SOURCE_DIR}/include/cpkt/opcua.h"
@@ -1259,10 +1166,7 @@ if(CPKT_BUILD_TESTS)
                 "$<TARGET_FILE:cpkt_sus_shared>"
                 "${CPKT_AUDIO_ABI_VERSION}"
                 "${CPKT_SUS_ABI_VERSION}")
-      cpkt_group_add_test(NAME sus_audio_integration COMMAND cpkt_sus_audio_integration_test)
-      cpkt_group_set_tests_properties(sus_audio_integration PROPERTIES LABELS "integration;opt-in;sus")
       if(NOT CPKT_NATIVE_BOOTLIN_RUNTIME)
-        cpkt_group_set_tests_properties(sus_audio_integration PROPERTIES ENVIRONMENT "LD_LIBRARY_PATH=$<TARGET_FILE_DIR:cpkt_sus_shared>:${CPKT_EXTERNAL_ROOT}/whisper/install/lib:${CPKT_EXTERNAL_ROOT}/curl/install/lib:${CPKT_EXTERNAL_ROOT}/openssl/install/lib:${CPKT_EXTERNAL_ROOT}/nghttp2/install/lib:${CPKT_EXTERNAL_ROOT}/libssh2/install/lib:${CPKT_EXTERNAL_ROOT}/zlib/install/lib")
       endif()
       cpkt_group_add_test(NAME abi_test_shared COMMAND cpkt_abi_test_shared)
       cpkt_group_add_test(NAME abi_test_static COMMAND cpkt_abi_test_static)
@@ -1277,46 +1181,21 @@ if(CPKT_BUILD_TESTS)
               NAME opcua_boundary_server_c89_client_c89
               COMMAND cpkt_opcua_facade_test server-is-c89-and-client-is-c89)
       cpkt_group_add_test(NAME opcua_facade_failure_modes COMMAND cpkt_opcua_facade_test failure-modes)
-      string(REGEX MATCH "^[0-9]+" _cpkt_postgresql_oauth_major
-              "${CPKT_POSTGRESQL_VERSION}")
-      cpkt_group_get_target_property(_cpkt_postgresql_shared_location
-              cpkt::postgresql_shared IMPORTED_LOCATION)
-      get_filename_component(_cpkt_postgresql_library_dir
-              "${_cpkt_postgresql_shared_location}" DIRECTORY)
       cpkt_group_add_test(NAME pdf_facade_static COMMAND cpkt_pdf_facade_static_test)
       cpkt_group_add_test(NAME pdf_facade_shared COMMAND cpkt_pdf_facade_shared_test)
       if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
-        cpkt_group_add_test(NAME pdf_api_surface COMMAND python3
-                  "${CMAKE_SOURCE_DIR}/tests/pdf_api_surface_test.py"
+        cpkt_group_add_test(NAME pdf_api_surface COMMAND "${CMAKE_COMMAND}" -P "${CMAKE_SOURCE_DIR}/tests/pdf_api_surface_test.cmake"
                   "${CPKT_DEPENDENCY_BUILD_ROOT}/libharu/src/include/hpdf.h"
                   "${CMAKE_SOURCE_DIR}/include/cpkt/pdf.h"
                   "$<TARGET_FILE:cpkt_pdf_shared>"
                   "${CMAKE_NM}"
                   "${CMAKE_SOURCE_DIR}/cmake/exports/cpkt_pdf.txt")
       endif()
-      file(MAKE_DIRECTORY "${CMAKE_BINARY_DIR}/db-completion")
       cpkt_group_add_test(
               NAME clean_source_test_scratch
               COMMAND bash "${CMAKE_SOURCE_DIR}/tests/clean_source_test_scratch_test.sh"
                       "${CMAKE_SOURCE_DIR}")
       cpkt_group_set_tests_properties(clean_source_test_scratch PROPERTIES LABELS "packaging;smoke" TIMEOUT 30)
-      if(CMAKE_SYSTEM_NAME STREQUAL "Darwin")
-        set(_cpkt_auth_symbol_format macho)
-      else()
-        set(_cpkt_auth_symbol_format elf)
-      endif()
-      if(CPKT_TARGET_ID STREQUAL "x86_64-linux-gnu")
-        cpkt_group_add_test(NAME contracts_out_of_source
-                  COMMAND "${Python3_EXECUTABLE}"
-                    "${CMAKE_SOURCE_DIR}/tests/contracts_out_of_source_test.py"
-                    "${CMAKE_SOURCE_DIR}" "${CMAKE_BINARY_DIR}" "${CMAKE_C_COMPILER}")
-        cpkt_group_set_tests_properties(contracts_out_of_source PROPERTIES LABELS "facade;packaging" TIMEOUT 240)
-      endif()
-      if(CMAKE_SYSTEM_NAME STREQUAL "Darwin")
-        set(_cpkt_db_symbol_format macho)
-      else()
-        set(_cpkt_db_symbol_format elf)
-      endif()
       if(CPKT_TARGET_ID STREQUAL "x86_64-linux-gnu")
         foreach(_cpkt_catalog_generator IN ITEMS Ninja Makefiles)
           if(_cpkt_catalog_generator STREQUAL "Ninja")
@@ -1325,19 +1204,14 @@ if(CPKT_BUILD_TESTS)
             set(_cpkt_catalog_generator_name "Unix Makefiles")
           endif()
           cpkt_group_add_test(NAME export_catalog_dependency_${_cpkt_catalog_generator}
-                      COMMAND "${Python3_EXECUTABLE}"
-                        "${CMAKE_SOURCE_DIR}/tests/export_catalog_dependency_test.py"
-                        --configured-binary-dir "${CMAKE_BINARY_DIR}"
-                        --generator "${_cpkt_catalog_generator_name}")
+                      COMMAND "${CMAKE_COMMAND}" "-DCPKT_REPO=${CMAKE_SOURCE_DIR}"
+                        "-DCPKT_BINARY=${CMAKE_BINARY_DIR}" "-DCPKT_GENERATOR=${_cpkt_catalog_generator_name}"
+                        "-DCPKT_TOOLCHAIN=${CMAKE_TOOLCHAIN_FILE}" "-DCPKT_NM=${CMAKE_NM}"
+                        -P "${CMAKE_SOURCE_DIR}/tests/export_catalog_dependency_test.cmake")
           cpkt_group_set_tests_properties(export_catalog_dependency_${_cpkt_catalog_generator} PROPERTIES LABELS "facade;packaging" TIMEOUT 180)
         endforeach()
       endif()
-      file(MAKE_DIRECTORY "${CMAKE_BINARY_DIR}/sasl-empty-plugin-path")
       set(_cpkt_memcheck_facade_tests abi_test_shared abi_test_static audio_facade_unit sus_facade_unit opcua_facade_integration opcua_boundary_server_c99_client_c89 opcua_boundary_server_c89_client_c99 opcua_boundary_server_c89_client_c89 opcua_facade_failure_modes pdf_facade_static pdf_facade_shared)
-      if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
-        list(APPEND _cpkt_memcheck_facade_tests
-                  )
-      endif()
       cpkt_group_set_tests_properties(opcua_facade_integration opcua_boundary_server_c99_client_c89 opcua_boundary_server_c89_client_c99 opcua_boundary_server_c89_client_c89 opcua_facade_failure_modes opcua_word_portability PROPERTIES LABELS "integration;offline;opcua" TIMEOUT 30)
       foreach(_cpkt_memcheck_test IN LISTS _cpkt_memcheck_facade_tests)
         cpkt_group_set_property(TEST ${_cpkt_memcheck_test} APPEND PROPERTY LABELS
@@ -1347,9 +1221,7 @@ if(CPKT_BUILD_TESTS)
       cpkt_group_set_tests_properties(opcua_facade_failure_modes PROPERTIES TIMEOUT 90)
       cpkt_group_add_test(
               NAME sus_model_catalog_metadata
-              COMMAND
-                "${CMAKE_SOURCE_DIR}/tests/sus_model_catalog_metadata_test.sh"
-                "${CMAKE_SOURCE_DIR}")
+              COMMAND "${CMAKE_COMMAND}" -P "${CMAKE_SOURCE_DIR}/tests/sus_model_catalog_metadata_test.cmake")
       cpkt_group_add_test(
               NAME sus_cpu_backend_policy
               COMMAND
@@ -1390,16 +1262,6 @@ if(CPKT_BUILD_TESTS)
                 "${CMAKE_SOURCE_DIR}/tests/osxcross_linker_cache_refresh_test.sh"
                 "${CMAKE_SOURCE_DIR}")
       cpkt_group_add_test(
-              NAME repo_dependency_cache_policy
-              COMMAND
-                "${CMAKE_SOURCE_DIR}/tests/repo_dependency_cache_policy_test.sh"
-                "${CMAKE_SOURCE_DIR}")
-      cpkt_group_add_test(
-              NAME repo_dependency_stale_root
-              COMMAND
-                "${CMAKE_SOURCE_DIR}/tests/repo_dependency_stale_root_test.sh"
-                "${CMAKE_SOURCE_DIR}")
-      cpkt_group_add_test(
               NAME external_project_toolchain_environment
               COMMAND
                 "${CMAKE_COMMAND}"
@@ -1412,12 +1274,6 @@ if(CPKT_BUILD_TESTS)
                 "${CMAKE_SOURCE_DIR}/tests/toolchain_resolver_test.sh"
                 "${CMAKE_SOURCE_DIR}")
       cpkt_group_add_test(
-              NAME lifecycle_toolchain_resolvers
-              COMMAND
-                "${CMAKE_SOURCE_DIR}/tests/toolchain_resolver_test.sh"
-                "${CMAKE_SOURCE_DIR}"
-                "${CMAKE_SOURCE_DIR}/scripts/cpkt-toolchains.sh")
-      cpkt_group_add_test(
               NAME aflpp_resolver_cleanup
               COMMAND
                 "${CMAKE_SOURCE_DIR}/tests/aflpp_resolver_cleanup_test.sh"
@@ -1428,9 +1284,8 @@ if(CPKT_BUILD_TESTS)
                 "${CMAKE_SOURCE_DIR}/tests/dependency_archive_cache_test.sh"
                 "${CMAKE_SOURCE_DIR}")
       cpkt_group_add_test(NAME dependency_cache_network_hits
-              COMMAND "${Python3_EXECUTABLE}"
-                "${CMAKE_SOURCE_DIR}/tests/dependency_cache_network_hits_test.py"
-                "${CMAKE_SOURCE_DIR}")
+              COMMAND bash "${CMAKE_SOURCE_DIR}/tests/dependency_cache_network_hits_test.sh"
+                "${CMAKE_SOURCE_DIR}" "${CPKT_HOST_PYTHON_EXECUTABLE}")
       cpkt_group_set_tests_properties(dependency_cache_network_hits PROPERTIES LABELS "packaging;smoke" TIMEOUT 60)
       cpkt_group_add_test(
               NAME dependency_cache_disabled
@@ -1454,7 +1309,7 @@ if(CPKT_BUILD_TESTS)
                     "${CMAKE_SOURCE_DIR}"
                     "${CMAKE_COMMAND}"
                     "${CMAKE_GENERATOR}"
-                    "${CPKT_NATIVE_MAKE_PROGRAM}"
+                    "${CMAKE_MAKE_PROGRAM}"
                     "${CMAKE_TOOLCHAIN_FILE}"
                     "${CMAKE_BUILD_TYPE}")
         cpkt_group_set_tests_properties(dependency_reuse_configure PROPERTIES LABELS "packaging;smoke" TIMEOUT 60)
@@ -1478,50 +1333,17 @@ if(CPKT_BUILD_TESTS)
         cpkt_group_set_tests_properties(open62541_openssl_provenance_${_cpkt_install_generator} PROPERTIES LABELS "packaging;smoke" TIMEOUT 30)
       endforeach()
       cpkt_group_add_test(
-              NAME dependency_component_targets
-              COMMAND
-                "${CMAKE_SOURCE_DIR}/tests/dependency_component_targets_test.sh"
-                "${CMAKE_SOURCE_DIR}")
-      cpkt_group_add_test(
               NAME package_assertions_elf_runpath
               COMMAND
                 "${CMAKE_SOURCE_DIR}/tests/package_assertions_elf_runpath_test.sh")
       cpkt_group_set_tests_properties(package_assertions_elf_runpath PROPERTIES LABELS "packaging" TIMEOUT 30)
       cpkt_group_add_test(NAME opcua_format_optimized_compile
-              COMMAND "${Python3_EXECUTABLE}" "${CMAKE_SOURCE_DIR}/tests/opcua_format_optimized_compile_test.py"
+              COMMAND "${CMAKE_COMMAND}" -P "${CMAKE_SOURCE_DIR}/tests/opcua_format_optimized_compile_test.cmake"
                 "${CMAKE_CURRENT_BINARY_DIR}")
       cpkt_group_set_tests_properties(opcua_format_optimized_compile PROPERTIES LABELS "packaging;opcua" TIMEOUT 30)
       cpkt_group_add_test(NAME opcua_header_contract
-              COMMAND "${Python3_EXECUTABLE}" "${CMAKE_SOURCE_DIR}/tests/opcua_header_contract_test.py" "${CMAKE_SOURCE_DIR}")
+              COMMAND "${CMAKE_COMMAND}" -P "${CMAKE_SOURCE_DIR}/tests/opcua_header_contract_test.cmake" "${CMAKE_SOURCE_DIR}")
       cpkt_group_set_tests_properties(opcua_header_contract PROPERTIES LABELS "packaging;opcua" TIMEOUT 30)
-      cpkt_group_add_test(
-              NAME package_assertions_cleanup
-              COMMAND
-                "${CMAKE_SOURCE_DIR}/tests/package_assertions_cleanup_test.sh"
-                "${CMAKE_SOURCE_DIR}")
-      cpkt_group_set_tests_properties(package_assertions_cleanup PROPERTIES LABELS "packaging" TIMEOUT 30)
-      cpkt_group_add_test(
-              NAME package_failure_diagnostics
-              COMMAND
-                python3 "${CMAKE_SOURCE_DIR}/tests/package_failure_diagnostics_test.py"
-                "${CMAKE_SOURCE_DIR}")
-      cpkt_group_set_tests_properties(package_failure_diagnostics PROPERTIES LABELS "packaging" TIMEOUT 30)
-      cpkt_group_add_test(
-              NAME package_consumer_execution
-              COMMAND python3 "${CMAKE_SOURCE_DIR}/tests/package_consumer_execution_test.py"
-                "${CMAKE_SOURCE_DIR}")
-      cpkt_group_set_tests_properties(package_consumer_execution PROPERTIES LABELS "packaging;smoke" TIMEOUT 30)
-      cpkt_group_add_test(
-              NAME package_archive_layout
-              COMMAND python3 "${CMAKE_SOURCE_DIR}/tests/package_archive_layout_test.py"
-                "${CMAKE_SOURCE_DIR}")
-      cpkt_group_set_tests_properties(package_archive_layout PROPERTIES LABELS "packaging;smoke" TIMEOUT 30)
-      cpkt_group_add_test(
-              NAME package_verify_toolchain_tools
-              COMMAND
-                "${CMAKE_SOURCE_DIR}/tests/package_verify_toolchain_tools_test.sh"
-                "${CMAKE_SOURCE_DIR}")
-      cpkt_group_set_tests_properties(package_verify_toolchain_tools PROPERTIES LABELS "packaging" TIMEOUT 30)
       cpkt_group_add_test(
               NAME native_hardening_host
               COMMAND
@@ -1540,20 +1362,8 @@ if(CPKT_BUILD_TESTS)
                 "${CMAKE_SOURCE_DIR}/tests/fuzz_toolchain_policy_test.sh"
                 "${CMAKE_SOURCE_DIR}")
       cpkt_group_set_tests_properties(fuzz_toolchain_policy PROPERTIES LABELS "fuzz;smoke" TIMEOUT 30)
-      cpkt_group_add_test(NAME package_integration_contracts
-              COMMAND "${CPKT_HOST_PYTHON_EXECUTABLE}" "${CMAKE_SOURCE_DIR}/tests/package_integration_contract_test.py")
       cpkt_group_add_test(NAME github_actions_contracts
-              COMMAND "${CPKT_HOST_PYTHON_EXECUTABLE}" "${CMAKE_SOURCE_DIR}/tests/github_actions_contract_test.py")
-      cpkt_group_add_test(
-              NAME lifecycle_surface
-              COMMAND
-                "${CMAKE_SOURCE_DIR}/tests/lifecycle_surface_test.sh")
-      cpkt_group_set_tests_properties(lifecycle_surface PROPERTIES LABELS "packaging;smoke" TIMEOUT 30)
-      cpkt_group_add_test(
-              NAME package_install_smoke_args
-              COMMAND
-                "${CMAKE_SOURCE_DIR}/tests/package_install_smoke_args_test.sh")
-      cpkt_group_set_tests_properties(package_install_smoke_args PROPERTIES LABELS "packaging;smoke" TIMEOUT 30)
+              COMMAND "${CMAKE_COMMAND}" -P "${CMAKE_SOURCE_DIR}/tests/github_actions_contract_test.cmake")
       cpkt_group_add_test(
               NAME receiver_style_examples
               COMMAND
@@ -1593,10 +1403,7 @@ if(CPKT_BUILD_TESTS)
       if(CPKT_TARGET_ID STREQUAL "x86_64-linux-gnu")
         cpkt_group_add_test(
                   NAME clangd_comment_gate
-                  COMMAND
-                    bash
-                    "${CMAKE_SOURCE_DIR}/tests/clangd_comment_gate_test.sh"
-                    "${CMAKE_SOURCE_DIR}/scripts/verify-clangd-surface.sh")
+                  COMMAND "${CMAKE_COMMAND}" -P "${CMAKE_SOURCE_DIR}/tests/editor_comment_gate_test.cmake")
         cpkt_group_set_tests_properties(clangd_comment_gate PROPERTIES LABELS "smoke" TIMEOUT 30)
         cpkt_group_add_test(
                   NAME clangd_surface
@@ -1623,7 +1430,7 @@ endif()
 include(cmake/CpktPackage.cmake)
 if(CPKT_BUILD_TESTS)
   cpkt_group_add_test(NAME repository_boundary
-      COMMAND "${CPKT_HOST_PYTHON_EXECUTABLE}" "${CMAKE_SOURCE_DIR}/tests/repository_boundary_test.py")
+      COMMAND "${CMAKE_COMMAND}" -P "${CMAKE_SOURCE_DIR}/tests/repository_boundary_test.cmake")
 endif()
 
 # Each linked shared module proves an owned static native/facade archive is PIC.

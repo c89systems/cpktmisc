@@ -1,18 +1,17 @@
 #!/usr/bin/env python3
 """Generate the C89 libHaru facade from the pinned upstream public headers.
 
-Usage: python3 tools/generate_pdf_facade.py PATH_TO_LIBHARU_INCLUDE
+Usage: python3 tools/generate_pdf_facade.py PATH_TO_LIBHARU_INCLUDE --output DIR
 The generated header and source are checked in so downstream builds need no Python.
 """
 
+import argparse
 import pathlib
 import re
-import shutil
-import subprocess
 import sys
 
-
 ROOT = pathlib.Path(__file__).resolve().parents[1]
+
 STRUCTS = {
     "HPDF_Point", "HPDF_Point3D", "HPDF_Rect", "HPDF_Box", "HPDF_Date",
     "HPDF_TextWidth", "HPDF_DashMode", "HPDF_TransMatrix",
@@ -80,11 +79,16 @@ from generated_output_paths import validate_output_paths
 
 
 def main():
-    validate_output_paths(ROOT / "include/cpkt/pdf.h", ROOT / "src/pdf.c",
-                          ROOT / "cmake/exports/cpkt_pdf.txt")
-    if len(sys.argv) != 2:
-        raise SystemExit(__doc__)
-    upstream = pathlib.Path(sys.argv[1])
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('upstream', type=pathlib.Path)
+    parser.add_argument('--output', type=pathlib.Path, required=True)
+    args = parser.parse_args()
+    upstream = args.upstream
+    output = args.output
+    validate_output_paths(output / "include/cpkt/pdf.h", output / "src/pdf.c",
+                          output / "cmake/exports/cpkt_pdf.txt")
+    for directory in ('include/cpkt', 'src', 'cmake/exports'):
+        (output / directory).mkdir(parents=True, exist_ok=True)
     types = (upstream / "hpdf_types.h").read_text()
     consts = (upstream / "hpdf_consts.h").read_text()
     api = (upstream / "hpdf.h").read_text()
@@ -204,18 +208,11 @@ def main():
                 source.append("    return %s;" % call)
         source.extend(["}", ""])
     header.extend(["", "/** @} */", "#ifdef __cplusplus", "}", "#endif", "#endif", ""])
-    (ROOT / "include/cpkt/pdf.h").write_text("\n".join(header))
-    (ROOT / "src/pdf.c").write_text("\n".join(source))
-    (ROOT / "cmake/exports/cpkt_pdf.txt").write_text(
+    (output / "include/cpkt/pdf.h").write_text("\n".join(header))
+    (output / "src/pdf.c").write_text("\n".join(source))
+    (output / "cmake/exports/cpkt_pdf.txt").write_text(
         "# Defined dynamic exports of libcpkt_pdf. Keep this list exact.\n"
         + "\n".join(sorted(exported_names)) + "\n"
-    )
-    formatter = shutil.which("clang-format")
-    if formatter is None:
-        raise SystemExit("clang-format is required to regenerate the PDF facade")
-    subprocess.run(
-        [formatter, "-i", str(ROOT / "include/cpkt/pdf.h"), str(ROOT / "src/pdf.c")],
-        check=True,
     )
     print("generated %d libHaru wrappers" % len(functions))
 

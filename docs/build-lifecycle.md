@@ -1,7 +1,7 @@
 # Native lifecycle contract
 
-cpktmisc is adopting the installed `pkt-systems-cmake-lifecycle` skill. The
-migration status and remaining work are in [the migration ledger](lifecycle-migration.md).
+cpktmisc follows the installed `pkt-systems-cmake-lifecycle` skill. The
+cutover and verification record is in [the migration ledger](lifecycle-migration.md).
 The product remains the OPC UA, PDF, audio and speech C89 SDK; core is an exact
 published prerequisite and cpktdb is independent.
 
@@ -53,14 +53,17 @@ Imported component versions come from the verified core manifest.
 `make test-lifecycle` runs native prerequisite, cache, cleanup, archive and resolver
 fixtures without compiling cpktmisc. Product builds, facade tests, clangd,
 Valgrind, fuzzing and final installed/relocated consumers remain required in their
-applicable scopes as the remaining graph is migrated. Source/data generators and
+applicable scopes. Source/data generators and
 small data fixtures may use Python. Python test drivers and lifecycle controllers
-are migration debt, not permitted exceptions.
+are absent. Python produces C sources, API inventory, SDK manifest data, synthetic
+audio bytes, or local archive-origin responses. Native CTest drivers own assertions.
 
 Preparation is incremental. Final release requires a clean committed checkout,
 a verified signature on the final amended commit and its exact lightweight tag
 before clean/build. A failed final release stops. Only the complete local gate
 and final shipped-byte checks authorize release publication. Darwin release proof
 uses local osxcross; hosted native checks are optional diagnostics dispatched on
-an existing remote ref. Never push to obtain CI feedback. Source, artifact and
+an existing remote ref. Clean source reconstruction supplies native Release;
+cross Release lanes and Debug/hardening retain this checkout's own producers.
+Never push to obtain CI feedback. Source, artifact and
 release versions remain independent of shared-library ABI majors.
