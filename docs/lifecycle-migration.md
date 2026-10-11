@@ -19,12 +19,31 @@ The seven SDK targets and static/shared consumer commitments are preserved.
 `GROUP=all` means only cpktmisc; cpktdb is independent. Core is a published SDK
 prerequisite, never another checkout or a core producer.
 
-All seven prerequisite pins identify [cpkt v0.1.0](https://github.com/c89systems/cpkt/releases/tag/v0.1.0),
-commit `95696cfb417f10430d09f0491eb982e29c89be07`, by release URL, archive SHA-256,
+All seven prerequisite pins identify [cpkt v0.2.0](https://github.com/c89systems/cpkt/releases/tag/v0.2.0),
+commit `98f6ed95cd9bbf2263c258bb05abb541847937ce`, by release URL, archive SHA-256,
 and package ID. Downloaded archives match the published CHECKSUMS; native CMake
 checks manifest identity and declared payload bytes. Imported component versions
 come from that manifest. Optional package version and ABI majors remain independent
 of core's release version; schema markers are unchanged.
+
+### Core prerequisite compatibility record
+
+The published baseline is cpkt 0.1.0, commit
+`95696cfb417f10430d09f0491eb982e29c89be07`. Its seven SDKs were compared with
+the pinned 0.2.0 publication. Component versions, source and recipe contracts,
+public header bytes, shared exported symbols, ELF SONAMEs, Darwin install names
+and compatibility versions are unchanged. Darwin facade current versions follow
+the core release and advance from 0.1.0 to 0.2.0 without an ABI-major change.
+
+The new `CpktCore` CMake package validates core in its independent installation
+and supplies its prefix, release version, target and package ID. Misc uses those
+published values instead of inferring core's root from OpenSSL. Normal dependency
+discovery preserves separate installations; no core payload is republished.
+All 96 existing shared Linux consumer binaries built against 0.1.0 passed with
+the 0.2.0 core SDK without recompiling or relinking. Static consumers and new
+shared consumers are verified by the package matrix. Darwin runtime compatibility
+remains unexecuted on the Linux host; local target build/link and artifact checks
+cover its declared preparation gate.
 
 ## Native implementation
 

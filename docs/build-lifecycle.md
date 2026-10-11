@@ -40,7 +40,7 @@ artifacts. Full clean removes all three complete directories, including hidden
 entries. Checkouts never borrow another checkout's generated tools or state.
 
 `make deps-core PRESET=<preset>` explicitly acquires the SDK selected by
-`dependencies/cpkt.json`. The seven target pins contain the exact cpkt 0.1.0
+`dependencies/cpkt.json`. The seven target pins contain the exact cpkt 0.2.0
 archive URL, SHA-256 and portable package ID. Native CMake validates the manifest,
 platform identity, payload hashes, modes and links. It validates archive members
 before extraction and validates staged bytes before replacing the local SDK.

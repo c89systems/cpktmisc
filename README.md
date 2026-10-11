@@ -78,7 +78,7 @@ make debug
 
 `dependencies/cpkt.json` pins one published core version and, for every supported
 target, its exact GitHub URL, SHA-256 archive digest and portable package ID.
-All seven 0.1.0 pins are populated from the verified core publication. Native
+All seven 0.2.0 pins are populated from the verified core publication. Native
 CMake validates the selected SDK's manifest and payload bytes. There is no
 sibling-checkout or host-library fallback. Ordinary consumer operations only validate an existing prerequisite;
 `deps-core` is the explicit acquisition action.
@@ -89,6 +89,8 @@ prefixes and discover them through `CMAKE_PREFIX_PATH`, or their `lib/pkgconfig`
 directories through `PKG_CONFIG_PATH`. Installed consumers validate the required
 core identity and use its imported targets. Neither provider overlays or republishes
 the other. Consumer tests relocate each SDK independently.
+Core discovery uses the published `CpktCore` package and its validated prefix,
+version, target and package ID.
 
 For example, use `-DCMAKE_PREFIX_PATH="/opt/cpktmisc;/opt/cpkt"` with CMake,
 or `PKG_CONFIG_PATH=/opt/cpktmisc/lib/pkgconfig:/opt/cpkt/lib/pkgconfig` with
