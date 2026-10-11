@@ -1,0 +1,16 @@
+include("${CMAKE_CURRENT_LIST_DIR}/test-context.cmake")
+foreach(owner core db)
+  cpkt_test_failure("not owned by this repository" bash "${CPKT_ROOT}/scripts/lifecycle.sh" debug --group "${owner}")
+endforeach()
+foreach(action release release-matrix package-source)
+  cpkt_test_failure("rejects GROUP/PRESET narrowing" bash "${CPKT_ROOT}/scripts/lifecycle.sh"
+    "${action}" --group misc --preset debug --preset-explicit no)
+endforeach()
+cpkt_test_failure("final release rejects candidate version override|release requires a clean committed worktree|release requires an exact lightweight"
+  "${CMAKE_COMMAND}" -E env CPKT_RELEASE_VERSION_OVERRIDE=1.2.3 bash "${CPKT_ROOT}/scripts/version-contract.sh" check)
+file(READ "${CPKT_ROOT}/cmake/components.json" inventory)
+string(JSON groups LENGTH "${inventory}" groups)
+string(JSON owner GET "${inventory}" repository_group)
+if(NOT groups EQUAL 1 OR NOT owner STREQUAL "misc")
+  message(FATAL_ERROR "This provider must own exactly the misc payload")
+endif()

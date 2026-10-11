@@ -1,0 +1,8 @@
+cmake_minimum_required(VERSION 3.21)
+foreach(file include/cpkt/pdf.h src/pdf.c cmake/exports/cpkt_pdf.txt)
+  file(SHA256 "${CPKT_SOURCE}/${file}" expected)
+  file(SHA256 "${CPKT_GENERATED}/${file}" actual)
+  if(NOT expected STREQUAL actual)
+    message(FATAL_ERROR "Checked-in PDF facade differs from its pinned source generator: ${file}")
+  endif()
+endforeach()

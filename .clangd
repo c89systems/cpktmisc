@@ -1,0 +1,13 @@
+CompileFlags:
+  CompilationDatabase: build
+  Add:
+    - -Wall
+    - -Wextra
+    - -Wpedantic
+Documentation:
+  CommentFormat: Markdown
+---
+If:
+  PathMatch: (dist|build|\.cache)/.*
+Index:
+  Background: Skip

@@ -1,0 +1,7 @@
+include("${CMAKE_CURRENT_LIST_DIR}/test-context.cmake")
+set(work "${CPKT_SCRATCH}/selected-tests")
+file(MAKE_DIRECTORY "${work}/source")
+file(WRITE "${work}/source/CMakeLists.txt" "cmake_minimum_required(VERSION 3.21)\nproject(selection NONE)\nenable_testing()\nadd_test(NAME absent COMMAND \"${work}/missing-executable\")\n")
+cpkt_test_command("${CMAKE_COMMAND}" -S "${work}/source" -B "${work}/graph")
+cpkt_test_failure("Unable to find executable|Not Run" "${CMAKE_CTEST_COMMAND}" --test-dir "${work}/graph" --no-tests=error --stop-on-failure)
+cpkt_test_failure("No tests were found" "${CMAKE_CTEST_COMMAND}" --test-dir "${work}/graph" -R does-not-exist --no-tests=error)
