@@ -24,6 +24,12 @@ ARCHIVE_MANUAL = {
 # Put facade-specific adaptations next to declarations for editor hovers.
 # The installed native headers document unchanged operation contracts.
 FUNCTION_CONTRACTS = {
+    'ffi_call_plan_alloc': 'Creates a caller-owned reusable plan; NULL reports allocation failure. '
+                           'The CIF must outlive the plan. Release it with cpkt_ffi_ffi_call_plan_free.',
+    'ffi_call_plan_invoke': 'Invokes an immutable reusable plan using the native ffi_call argument contract. '
+                            'The plan may be shared across threads; its CIF must remain valid.',
+    'ffi_call_plan_free': 'Releases the caller-owned plan; the borrowed CIF is not freed.',
+    'ffi_call_plan_size': 'Returns the total bytes allocated by libffi for the opaque plan.',
     'archive_entry_stat': 'Copies the complete target stat record into caller-owned output. '
                           'Returns ARCHIVE_OK, or ARCHIVE_FATAL if the native view or output is unavailable.',
     'archive_entry_copy_stat': 'Copies the caller-owned facade stat record into the entry; '
@@ -660,7 +666,8 @@ class Generator:
         header.parent.mkdir(parents=True, exist_ok=True)
         source.parent.mkdir(parents=True, exist_ok=True)
         h = ['/** Complete pinned public API adapted to C89; native headers document unchanged contracts.',
-             ' * Full-width integers use cpkt_compression_u64/i64. See compression-facades.md for adaptations. */',
+             ' * Full-width integers use cpkt_compression_u64/i64.',
+             ' * See share/doc/cpkt/misc/docs/compression-facades.md for adaptations. */',
              '#ifndef ' + self.guard + '_H', '#define ' + self.guard + '_H',
              '#include <stddef.h>', '#include <stdio.h>', '#include <stdarg.h>',
              '#include <stdlib.h>', '#include <string.h>', '#include <cpkt/compression_types.h>',
@@ -668,7 +675,7 @@ class Generator:
         if self.args.library == 'archive':
             h += ['struct archive;', 'struct archive_entry;', 'struct archive_entry_linkresolver;']
             for tag, fields in self.stat_definitions:
-                h += ['/** Full target stat record; timestamps and file identities retain all 64 bits. */',
+                h += ['/** Complete target stat record; fields preserve the native target ranges. */',
                       'typedef struct {']
                 h += ['  ' + declaration(self.public_type(public), name) + ';' for name, _, public in fields]
                 h += ['} cpkt_archive_' + tag + ';']

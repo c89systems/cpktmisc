@@ -2,7 +2,8 @@
 
 cpktmisc bundles libffi 3.8.0, libarchive 3.8.9, zstd 1.5.7, libyaml 0.2.5,
 bzip2 1.0.8, xz/liblzma 5.8.4, LZ4 1.10.0 and LZO 2.10. The archive library
-uses these bundled codecs and the pinned core SDK's zlib, OpenSSL and libxml2.
+uses these bundled codecs and the independently installed core SDK's zlib,
+OpenSSL and libxml2.
 Its BLAKE2 implementation is built in. Filters that upstream implements by
 launching an external program retain that upstream requirement.
 
@@ -118,6 +119,12 @@ packages are `CpktFfiFacade`, `CpktArchiveFacade`, `CpktZstdFacade`,
 and `cpkt::LIBRARY_shared` targets. pkg-config names are `cpkt-LIBRARY`;
 use `--static` for static consumers. The native libraries retain their ABI
 identities. Each new facade starts at independent ABI major 0.
+
+Install misc and a compatible core into separate prefixes. Before linking through
+pkg-config, run the installed `lib/cmake/CpktMisc/pkg-config` CMake project with
+`CPKT_SDK_PREFIX` pointing to misc and the same pkg-config executable and
+environment as the link query. It checks the selected core's compatibility floor,
+target and payload; CMake package discovery performs these checks automatically.
 
 LZO is GPL version 2 or later. Other upstream license texts, and XZ's
 additional notices, accompany the SDK under

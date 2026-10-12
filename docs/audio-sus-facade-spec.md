@@ -363,6 +363,10 @@ built-in encoder APIs without new external dependencies. It supports:
 - close/finalize explicitly;
 - query supported output formats.
 
+`close` finalizes output and reports writer errors, but leaves the encoder handle
+allocated. Always call `destroy`, including after a failed `close`; `destroy`
+also finalizes an encoder that has not been closed.
+
 Do not imply that every decoded format can also be encoded. Encoding support
 is capability-driven and tested. WAV is the supported first-class encoding
 format. Additional formats require explicit confirmation from
@@ -378,6 +382,10 @@ miniaudio's built-in encoder surface or a deliberate dependency expansion.
 `cpkt_sus` is the overarching speech facade instance. Each instance owns one
 loaded whisper model and instance-level facade state such as transcript spacing
 policy. The instance creates transcriber sessions.
+Transcribers borrow the model and must be destroyed before it. Inference calls
+on transcribers sharing one model must be serialized. Construction copies the
+transcriber config by value; language, initial-prompt strings and callback user
+data remain caller-owned and must outlive the transcriber.
 
 ### Common Types
 
@@ -560,6 +568,15 @@ workflow demand.
 
 ## Audio And Sus Integration
 
+Install core and misc into separate prefixes. CMake packages `CpktAudio` and
+`CpktSus` expose `cpkt::audio` and `cpkt::sus` static targets and their `_shared`
+counterparts, with transitive dependencies included. pkg-config modules are
+`cpkt-audio` and `cpkt-sus`; use `--static` for static linking. Before a pkg-config
+link query, configure the installed `lib/cmake/CpktMisc/pkg-config` project in a
+fresh build directory with `CPKT_SDK_PREFIX` pointing to misc. Use the same
+pkg-config executable and environment for validation and the link query so the
+selected core's compatibility floor, target and payload are checked.
+
 `cpkt_audio` and `cpkt_sus` are separate libraries. `cpkt_sus` may provide
 convenience entry points that accept `cpkt_audio_decoder` only if the build and
 package metadata keep library dependencies clear.
@@ -689,14 +706,17 @@ cache path maps to the same source URL and checksum.
 
 ## Cache Path Policy
 
-Cache directory precedence:
+Cache directory selection:
 
-1. explicit `cache_dir` in `cpkt_sus_cache_config`;
-2. `cpktxscribe --cache-dir DIR`, which fills `cpkt_sus_cache_config.cache_dir`;
-3. `$XDG_CACHE_HOME/cpkt/susurro/models`;
-4. `$HOME/.cache/cpkt/susurro/models`;
-5. platform-specific fallback only if the repository already has or introduces
-   a tested cpkt path helper.
+1. A non-empty `cache_dir` in `cpkt_sus_cache_config` is used directly.
+   `cpktxscribe --cache-dir DIR` fills that same field.
+2. Otherwise, a non-empty `XDG_CACHE_HOME` selects
+   `$XDG_CACHE_HOME/cpkt/susurro/models`.
+3. Otherwise, a non-empty `HOME` selects `$HOME/.cache/cpkt/susurro/models`.
+
+When both environment variables are unset or empty, default resolution returns
+`CPKT_SUS_ERR_IO`. There is no search of the HOME directory after selecting an
+XDG directory; missing or invalid entries are handled in the selected directory.
 
 Downloaded models must be written atomically:
 
@@ -771,7 +791,7 @@ Required checks:
 - toolchain/package verification proves each Linux `cpkt_sus` target has
   cpkt-provided `libstdc++.a` and `libgcc.a` runtime archives;
 - static package smoke tests link a C consumer with `cc` through
-  `pkg-config --static cpktsus`, without `g++` and without host/system
+  `pkg-config --static --libs cpkt-sus`, without `g++` and without host/system
   `libstdc++` paths;
 - static package smoke tests link a mixed C/C++ consumer where the final link is
   still performed by `cc` and all C++ runtime resolution comes from the

@@ -19,13 +19,16 @@ file(COPY_FILE "${CPKT_SOURCE_DIR}/cmake/CpktMiscConfig.cmake"
   "${_stage_root}/lib/cmake/CpktMisc/CpktMiscConfig.cmake")
 file(COPY_FILE "${CPKT_SOURCE_DIR}/cmake/CpktMiscValidate.cmake"
   "${_stage_root}/lib/cmake/CpktMisc/Validate.cmake")
+file(MAKE_DIRECTORY "${_stage_root}/lib/cmake/CpktMisc/pkg-config")
+file(COPY_FILE "${CPKT_SOURCE_DIR}/cmake/pkg-config-validation.cmake"
+  "${_stage_root}/lib/cmake/CpktMisc/pkg-config/CMakeLists.txt")
 file(GLOB pcs "${_stage_root}/lib/pkgconfig/*.pc")
 foreach(pc IN LISTS pcs)
   file(READ "${pc}" content)
   if(content MATCHES "(^|\n)Requires:([^\n]*)")
-    string(REGEX REPLACE "(^|\n)Requires:([^\n]*)" "\\1Requires:\\2, cpkt-core = ${core_version}" content "${content}")
+    string(REGEX REPLACE "(^|\n)Requires:([^\n]*)" "\\1Requires:\\2, cpkt-core >= ${core_version}" content "${content}")
   else()
-    string(APPEND content "Requires: cpkt-core = ${core_version}\n")
+    string(APPEND content "Requires: cpkt-core >= ${core_version}\n")
   endif()
   file(WRITE "${pc}" "${content}")
 endforeach()

@@ -6,6 +6,8 @@ if [ "${CPKT_SDK_PREFIX:-}" = "" ]; then
   exit 2
 fi
 
+CPKT_SDK_PREFIX=$(CDPATH= cd -- "$CPKT_SDK_PREFIX" && pwd -P)
+
 cc=${CC:-cc}
 pkg_config=${PKG_CONFIG:-pkg-config}
 output=${1:-./cpkt_audio_sus_c89_example}
@@ -16,14 +18,21 @@ output_dir=$(dirname -- "$output")
 
 mkdir -p "$output_dir"
 
+PKG_CONFIG_PATH="$CPKT_SDK_PREFIX/lib/pkgconfig${PKG_CONFIG_PATH:+:$PKG_CONFIG_PATH}"
+export PKG_CONFIG_PATH
+validation=$(mktemp -d "$output_dir/.cpkt-sdk-validation.XXXXXX")
+trap 'rm -rf -- "$validation"' 0
+trap 'exit 129' HUP
+trap 'exit 130' INT
+trap 'exit 143' TERM
+cmake -S "$CPKT_SDK_PREFIX/lib/cmake/CpktMisc/pkg-config" \
+  -B "$validation" \
+  "-DCPKT_SDK_PREFIX=$CPKT_SDK_PREFIX" "-DPKG_CONFIG_EXECUTABLE=$pkg_config"
+
 pkg_config_cflags=$(
-  PKG_CONFIG_PATH= \
-  PKG_CONFIG_LIBDIR="$CPKT_SDK_PREFIX/lib/pkgconfig" \
     "$pkg_config" --cflags cpkt-audio cpkt-sus
 )
 pkg_config_libs=$(
-  PKG_CONFIG_PATH= \
-  PKG_CONFIG_LIBDIR="$CPKT_SDK_PREFIX/lib/pkgconfig" \
     "$pkg_config" --static --libs cpkt-audio cpkt-sus
 )
 

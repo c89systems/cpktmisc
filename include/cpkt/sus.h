@@ -5,6 +5,11 @@
 extern "C" {
 #endif
 
+/**
+ * Speech handles are caller-owned and used by one thread at a time.
+ * A model must outlive all its transcribers; destroy transcribers first.
+ * Serialize inference for transcribers sharing a model.
+ */
 /** Receiver instance for one loaded speech model and its facade state. */
 typedef struct cpkt_sus cpkt_sus;
 /** Handle for a transcription instance bound to a loaded model. */
@@ -107,8 +112,10 @@ typedef struct cpkt_sus_cache_config {
   /**
    * Optional model cache directory.
    *
-   * NULL or empty selects $XDG_CACHE_HOME/cpkt/susurro/models, then
-   * $HOME/.cache/cpkt/susurro/models.
+   * NULL or empty uses $XDG_CACHE_HOME/cpkt/susurro/models when XDG_CACHE_HOME
+   * is non-empty; otherwise $HOME/.cache/cpkt/susurro/models. If both
+   * environment variables are unset or empty, default resolution returns
+   * CPKT_SUS_ERR_IO.
    */
   const char *cache_dir;
   /** Optional lowercase hex SHA-256 override for the selected model. */
@@ -265,19 +272,23 @@ typedef enum cpkt_sus_segment_mode {
   CPKT_SUS_SEGMENT_MODE_CONTINUOUS = 1
 } cpkt_sus_segment_mode;
 
-/** Transcriber construction options. */
+/**
+ * Transcriber construction options, copied by value when the transcriber opens.
+ * Pointed-to strings and callback user data remain caller-owned and must stay
+ * valid until the transcriber is destroyed.
+ */
 typedef struct cpkt_sus_transcriber_config {
   /** Number of backend threads. Zero selects the backend default. */
   int threads;
   /** Non-zero requests CPU-only runtime behavior where supported. */
   int cpu_only;
-  /** Language code. NULL, empty, or "auto" selects auto-detection. */
+  /** Borrowed language code. NULL, empty, or "auto" selects auto-detection. */
   const char *language;
   /** Non-zero translates to English instead of transcribing. */
   int translate;
   /** Non-zero enables timestamped segment output. */
   int timestamps;
-  /** Optional initial prompt passed to the backend. */
+  /** Optional borrowed initial prompt passed to the backend. */
   const char *initial_prompt;
   /** Optional segment sink for callback-oriented output. */
   cpkt_sus_segment_sink segment_sink;
@@ -361,7 +372,7 @@ struct cpkt_sus {
   void *impl;
   /** Fills info with backend and execution details for this instance. */
   cpkt_sus_result (*info)(const cpkt_sus *self, cpkt_sus_info *info);
-  /** Creates a transcriber bound to this instance. */
+  /** Creates an owned transcriber; destroy it before this model instance. */
   cpkt_sus_result (*create_transcriber)(
       cpkt_sus *self, cpkt_sus_transcriber **out,
       const cpkt_sus_transcriber_config *config);
@@ -373,7 +384,7 @@ struct cpkt_sus {
    * first stream again and removes one absolute initial backend space.
    */
   cpkt_sus_result (*reset_transcript_spacing)(cpkt_sus *self);
-  /** Releases the loaded model and all resources owned by the instance. */
+  /** Releases the loaded model; all transcribers must already be destroyed. */
   void (*destroy)(cpkt_sus *self);
 };
 
@@ -488,16 +499,25 @@ cpkt_sus_result cpkt_sus_open_path(cpkt_sus **out,
  * Opens a speech model through the explicit cache-backed resolver.
  *
  * A NULL or empty model name selects the default "tiny" multilingual model.
- * The resolver checks an existing cache entry in cache_dir, XDG_CACHE_HOME, or
- * HOME/.cache, verifies SHA-256 unless insecure_no_checksum is non-zero, and
- * then loads the model. Missing cache entries are downloaded through the
- * facade's network fetcher unless offline is non-zero. source_url may override
- * the curated URL, but the checksum rules still apply.
+ * The resolver uses cache_dir when supplied, otherwise the default
+ * $XDG_CACHE_HOME/cpkt/susurro/models or $HOME/.cache/cpkt/susurro/models path.
+ * It verifies SHA-256 unless insecure_no_checksum is non-zero, then loads the
+ * model. Unless offline is non-zero, missing entries are downloaded and entries
+ * failing checksum or model-load validation are replaced through a validated
+ * temporary file. source_url may override the curated URL; checksum rules
+ * apply. On success, destroy all model transcribers before destroying *out. On
+ * failure, *out is NULL when out is non-NULL. Config strings are borrowed
+ * during this call.
  */
 cpkt_sus_result cpkt_sus_open_cached(cpkt_sus **out,
                                      const cpkt_sus_cache_config *config);
 
-/** Creates a transcriber bound to an opened instance. */
+/**
+ * Creates an owned transcriber borrowing sus and the config's pointed-to data.
+ * NULL config selects defaults. Destroy the transcriber before sus and keep
+ * borrowed config strings and callback user data alive until then.
+ * On failure, *out is NULL when out is non-NULL.
+ */
 cpkt_sus_result
 cpkt_sus_create_transcriber(cpkt_sus *sus, cpkt_sus_transcriber **out,
                             const cpkt_sus_transcriber_config *config);

@@ -82,7 +82,20 @@ docs.mkdir(parents=True, exist_ok=True)
 (docs / 'THIRD_PARTY_NOTICES.md').write_text('Bundled misc components and complete license paths:\n\n' + ''.join(
     '- ' + item['name'] + ' ' + item['version'] + ': third_party/' + item['name'] + '/LICENSE\n'
     for item in components))
-(docs / 'README.md').write_text('cpktmisc ' + args.version + ' SDK\n\nRequires cpkt ' + core['release_version'] + '.\n')
+(docs / 'README.md').write_text('cpktmisc ' + args.version + ' SDK\n\nRequires a core SDK compatible with '
+                              + core['release_version'] + '. Install core and misc into separate prefixes.\n'
+                              'The selected core must satisfy CpktCore_COMPATIBLE_SINCE <= '
+                              + core['release_version'] + ' <= CpktCore_VERSION, with the same target.\n'
+                              'The exact producer pin is recorded separately in core_build_pin in '
+                              'share/cpkt/packages/misc.json.\n\n'
+                              'Discover CMake packages through CMAKE_PREFIX_PATH. For pkg-config, put '
+                              'both SDK lib/pkgconfig directories in PKG_CONFIG_PATH. Before linking, '
+                              'configure lib/cmake/CpktMisc/pkg-config in a fresh build directory with '
+                              'CPKT_SDK_PREFIX pointing to this SDK and PKG_CONFIG_EXECUTABLE selecting '
+                              'the same tool as the link query. This validates the selected core floor, '
+                              'target and payload. Shipped build-pkg-config.sh examples do this automatically.\n\n'
+                              'Facade contracts: docs/compression-facades.md, docs/pdf-c89-facade.md, '
+                              'docs/audio-sus-facade-spec.md and docs/opcua-c89-facade-spec.md.\n')
 files = []
 for path in sorted(prefix.rglob('*')):
     name = path.relative_to(prefix).as_posix()
@@ -101,7 +114,8 @@ manifest = dict(schema_version=1, group=args.group, release_version=args.version
                 libc=None if args.target.endswith('darwin') else args.target.split('-')[-1],
                 macos_deployment_target=args.floor if args.target.endswith('darwin') else None,
                 components=sorted(components, key=lambda item: item['name']), files=files,
-                requires_core={key: core[key] for key in ('package_id', 'release_version', 'target_id')})
+                core_build_pin={key: core[key] for key in ('package_id', 'release_version', 'target_id')},
+                requires_core={key: core[key] for key in ('release_version', 'target_id')})
 manifest['package_id'] = hashlib.sha256(canonical(manifest)).hexdigest()
 destination = prefix / 'share/cpkt/packages' / (args.group + '.json')
 destination.parent.mkdir(parents=True, exist_ok=True)

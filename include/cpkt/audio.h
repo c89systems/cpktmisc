@@ -7,6 +7,11 @@
 extern "C" {
 #endif
 
+/**
+ * Audio handles are caller-owned and used by one thread at a time.
+ * Release opened handles with their destroy receiver, including after close.
+ * Callback records and segment handles are borrowed only until callback return.
+ */
 /** Handle for a single audio decoder instance. */
 #ifndef CPKT_AUDIO_DECODER_TYPEDEF
 #define CPKT_AUDIO_DECODER_TYPEDEF
@@ -267,8 +272,8 @@ struct cpkt_audio_vox_segment {
   /**
    * Reads segment PCM as float32 mono 16000 Hz frames.
    *
-   * The segment is valid only during the VOX callback. frames_read is set
-   * before return when arguments are valid. CPKT_AUDIO_AT_END means the
+   * The segment is valid only during its VOX or PTT callback. frames_read is
+   * set before return when arguments are valid. CPKT_AUDIO_AT_END means the
    * segment source has been fully consumed.
    */
   cpkt_audio_result (*read_f32_mono_16k)(cpkt_audio_vox_segment *self,
@@ -280,7 +285,8 @@ struct cpkt_audio_vox_segment {
  * Receives a bounded VOX speech segment.
  *
  * Return zero to continue. Returning non-zero makes the active push or flush
- * call return CPKT_AUDIO_ERR_IO.
+ * call return CPKT_AUDIO_ERR_IO. The segment and its reader must not be
+ * retained after callback return.
  */
 typedef int (*cpkt_audio_vox_segment_sink)(cpkt_audio_vox_segment *segment,
                                            void *user);
@@ -395,7 +401,8 @@ struct cpkt_audio_encoder {
    * Finalizes the encoded stream.
    *
    * Safe to call more than once. Returns CPKT_AUDIO_ERR_IO if the writer
-   * failed while the backend patched or flushed the output.
+   * failed while the backend patched or flushed the output. The handle remains
+   * allocated; call destroy afterwards even when close reports an error.
    */
   cpkt_audio_result (*close)(cpkt_audio_encoder *self);
   /** Finalizes and releases the encoder and all resources owned by the handle.
@@ -556,7 +563,9 @@ cpkt_audio_decoder_open_reader(cpkt_audio_decoder **out,
  * Opens an audio encoder for a filesystem path.
  *
  * WAV is the initial supported encoding format. On success, *out receives an
- * encoder handle that must be closed or destroyed.
+ * encoder handle that must be destroyed. Call close first to inspect
+ * finalization errors; destroy also finalizes an encoder that has not been
+ * closed.
  */
 cpkt_audio_result
 cpkt_audio_encoder_open_file(cpkt_audio_encoder **out, const char *path,

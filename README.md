@@ -18,8 +18,10 @@ libffi, libarchive, zstd, liblzma, LZ4 and LZO have complete C89 facade surfaces
 including advanced and deprecated public APIs. libyaml, bzip2 and libpng retain
 their native C89 interfaces. PDF covers the complete libHaru API; audio and speech
 retain their declared product APIs. See [facade contracts](docs/compression-facades.md)
-and the [0.1.0 release notes](docs/releases/0.1.0.md) for the pinned inventory and
-consumer requirements.
+and the [dependency inventory](docs/dependencies.md) for the current surface and
+prerequisites. The [0.2.0 release notes](docs/releases/0.2.0.md) describe the
+compatibility and metadata changes; [0.1.0](docs/releases/0.1.0.md) records the
+original published inventory and consumer requirements.
 
 Public headers keep the `<cpkt/...>` namespace and existing facade library names.
 Shared-library ABI majors retain their existing identities. Repository release
@@ -29,6 +31,10 @@ versions are independent of those ABI majors.
 NULL or empty cached-model name defaults to `tiny`. The `cpktxscribe` shell exposes the same
 default and a `--cache-dir DIR` option. Model acquisition is explicit through the
 cached-model constructor; the local-path constructor reads only the supplied file.
+The default model directory is `${XDG_CACHE_HOME:-$HOME/.cache}/cpkt/susurro/models`.
+Audio handles must be destroyed after use, including after encoder close. Speech
+transcribers borrow their model and configuration strings; destroy transcribers
+before the model and keep those strings valid until transcriber destruction.
 
 ## Independent repositories
 
@@ -90,24 +96,47 @@ make debug
 
 `dependencies/cpkt.json` pins one published core version and, for every supported
 target, its exact GitHub URL, SHA-256 archive digest and portable package ID.
-All seven 0.2.0 pins are populated from the verified core publication. Native
+All seven 0.3.0 build pins come from the verified core publication. Native
 CMake validates the selected SDK's manifest and payload bytes. There is no
 sibling-checkout or host-library fallback. Ordinary consumer operations only validate an existing prerequisite;
 `deps-core` is the explicit acquisition action.
 
 An optional release need not have the same version as core. Its manifest records
-the exact core release, target and package ID. Install core and misc into separate
+the exact build prerequisite in `core_build_pin` and its consumer compatibility
+baseline in `requires_core`. Installed misc packages require a core whose declared
+compatibility span includes that baseline, with the same target; they independently
+validate both SDKs' payloads. A newer compatible core can be selected without
+rebuilding misc. Static applications relink to incorporate updated core code;
+shared deployments select the new core libraries at runtime.
+The current baseline is 0.3.0: the selected core must satisfy
+`CpktCore_COMPATIBLE_SINCE <= 0.3.0 <= CpktCore_VERSION`.
+Install core and misc into separate
 prefixes and discover them through `CMAKE_PREFIX_PATH`, or their `lib/pkgconfig`
-directories through `PKG_CONFIG_PATH`. Installed consumers validate the required
-core identity and use its imported targets. Neither provider overlays or republishes
+directories through `PKG_CONFIG_PATH`. Installed consumers use the selected core's
+imported targets. Neither provider overlays or republishes
 the other. Consumer tests relocate each SDK independently.
 Core discovery uses the published `CpktCore` package and its validated prefix,
-version, target and package ID.
+version, target, package ID and `CpktCore_COMPATIBLE_SINCE` floor.
 
 For example, use `-DCMAKE_PREFIX_PATH="/opt/cpktmisc;/opt/cpkt"` with CMake,
 or `PKG_CONFIG_PATH=/opt/cpktmisc/lib/pkgconfig:/opt/cpkt/lib/pkgconfig` with
 pkg-config. The Darwin smoke ZIP contains misc libraries only; executing it also
-requires the pinned core installation on the runtime library search path.
+requires a compatible core installation on the runtime library search path.
+pkg-config version constraints cannot check the compatibility floor or payload
+integrity. Before linking through pkg-config, run the installed validator using
+the same pkg-config executable and environment as the subsequent link query:
+
+```sh
+export PKG_CONFIG_PATH=/opt/cpktmisc/lib/pkgconfig:/opt/cpkt/lib/pkgconfig
+cmake -S /opt/cpktmisc/lib/cmake/CpktMisc/pkg-config \
+  -B build/cpkt-pkg-config-validation \
+  -DCPKT_SDK_PREFIX=/opt/cpktmisc -DPKG_CONFIG_EXECUTABLE="$(command -v pkg-config)"
+```
+
+Use a fresh validation build directory when changing SDK selections. This checks
+that CMake validates the core selected by pkg-config, including its floor, target
+and payload. The shipped `build-pkg-config.sh` examples perform this validation
+in a fresh temporary directory before invoking the compiler.
 For cross builds, append both SDK prefixes to `CMAKE_FIND_ROOT_PATH` in the
 consumer's CMake setup and retain `CMAKE_FIND_ROOT_PATH_MODE_PACKAGE=ONLY`.
 

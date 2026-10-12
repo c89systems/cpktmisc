@@ -1,6 +1,6 @@
 /* Generated from libHaru 2.4.6 public headers; see
  * tools/generate_pdf_facade.py. */
-/* libHaru license: share/doc/cpkt/third_party/libharu/LICENSE. */
+/* libHaru license: share/doc/cpkt/misc/third_party/libharu/LICENSE. */
 #ifndef CPKT_PDF_H
 #define CPKT_PDF_H
 #include <stdlib.h>

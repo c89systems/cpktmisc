@@ -2,7 +2,7 @@
 """Generate the C89 libHaru facade from the pinned upstream public headers.
 
 Usage: python3 tools/generate_pdf_facade.py PATH_TO_LIBHARU_INCLUDE --output DIR
-The generated header and source are checked in so downstream builds need no Python.
+The generated header and source are checked in; installed consumers need no Python.
 """
 
 import argparse
@@ -112,7 +112,7 @@ def main():
 
     header = [
         "/* Generated from libHaru 2.4.6 public headers; see tools/generate_pdf_facade.py. */",
-        "/* libHaru license: share/doc/cpkt/third_party/libharu/LICENSE. */",
+        "/* libHaru license: share/doc/cpkt/misc/third_party/libharu/LICENSE. */",
         "#ifndef CPKT_PDF_H", "#define CPKT_PDF_H", "#include <stdlib.h>",
         "#if defined(__GNUC__) || defined(__clang__)",
         '#define CPKT_PDF_API __attribute__((visibility("default")))',
