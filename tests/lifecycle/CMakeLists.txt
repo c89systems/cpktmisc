@@ -5,7 +5,7 @@ get_filename_component(CPKT_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/../.." ABSOLUTE)
 include("${CPKT_ROOT}/cmake/CpktMutationPaths.cmake")
 cpkt_validate_mutation_paths("${CMAKE_BINARY_DIR}/scratch")
 file(MAKE_DIRECTORY "${CMAKE_BINARY_DIR}/scratch")
-foreach(check sdk_native_validation independent_providers published_core cache_defaults clean_ownership archive_safety literal_arguments logging_output_driver)
+foreach(check sdk_native_validation independent_providers published_core checksum_inventory cache_defaults clean_ownership archive_safety literal_arguments logging_output_driver)
   add_test(NAME ${check}
     COMMAND "${CMAKE_COMMAND}" "-DCPKT_ROOT=${CPKT_ROOT}" "-DCPKT_SCRATCH=${CMAKE_BINARY_DIR}/scratch"
       -P "${CPKT_ROOT}/tests/${check}_test.cmake")

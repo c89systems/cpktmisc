@@ -3,21 +3,43 @@ include("${CPKT_ROOT}/tests/test-command.cmake")
 set(work "${CPKT_SCRATCH}/sdk-validation")
 file(REMOVE_RECURSE "${work}")
 set(prefix "${work}/prefix with spaces")
-file(MAKE_DIRECTORY "${prefix}/lib/cmake/CpktSDK" "${prefix}/include" "${prefix}/share/cpkt/packages" "${work}/source")
+file(MAKE_DIRECTORY "${prefix}/lib/cmake/CpktSDK" "${prefix}/include" "${prefix}/bin"
+  "${prefix}/share/cpkt/packages" "${work}/source" "${work}/tools")
 file(COPY_FILE "${CPKT_ROOT}/cmake/CpktMiscValidate.cmake" "${prefix}/lib/cmake/CpktSDK/Validate.cmake")
 file(WRITE "${prefix}/include/sample.h" "int sample(void);\n")
+file(WRITE "${prefix}/include/other header.h" "int other(void);\n")
+file(WRITE "${prefix}/include/private.h" "int private_sample(void);\n")
+file(WRITE "${prefix}/bin/tool" "#!/bin/sh\nexit 0\n")
+file(CREATE_LINK sample.h "${prefix}/include/alias.h" SYMBOLIC)
 file(WRITE "${work}/source/CMakeLists.txt" [=[cmake_minimum_required(VERSION 3.21)
 project(sdk_validation NONE)
 include("${PREFIX}/lib/cmake/CpktSDK/Validate.cmake")
+if(TEST_STAT_HOST)
+  set(CMAKE_HOST_SYSTEM_NAME "${TEST_STAT_HOST}")
+endif()
+_cpkt_misc_validate_prefix("${PREFIX}" core)
+# Repeated discovery in this process must reuse the successful validation.
 _cpkt_misc_validate_prefix("${PREFIX}" core)
 ]=])
 set(files "")
-foreach(path include/sample.h lib/cmake/CpktSDK/Validate.cmake)
-  file(CHMOD "${prefix}/${path}" PERMISSIONS OWNER_READ OWNER_WRITE GROUP_READ WORLD_READ)
+set(payload include/sample.h "include/other header.h" bin/tool include/private.h lib/cmake/CpktSDK/Validate.cmake)
+foreach(path IN LISTS payload)
+  if(path STREQUAL "bin/tool")
+    set(mode 0755)
+    file(CHMOD "${prefix}/${path}" PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE
+      GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE)
+  elseif(path STREQUAL "include/private.h")
+    set(mode 0600)
+    file(CHMOD "${prefix}/${path}" PERMISSIONS OWNER_READ OWNER_WRITE)
+  else()
+    set(mode 0644)
+    file(CHMOD "${prefix}/${path}" PERMISSIONS OWNER_READ OWNER_WRITE GROUP_READ WORLD_READ)
+  endif()
   file(SHA256 "${prefix}/${path}" sha)
-  string(APPEND files "${separator}{\"mode\":\"0644\",\"path\":\"${path}\",\"sha256\":\"${sha}\",\"type\":\"file\"}")
+  string(APPEND files "${separator}{\"mode\":\"${mode}\",\"path\":\"${path}\",\"sha256\":\"${sha}\",\"type\":\"file\"}")
   set(separator ,)
 endforeach()
+string(APPEND files ",{\"path\":\"include/alias.h\",\"target\":\"sample.h\",\"type\":\"symlink\"}")
 set(before "{\"components\":[],\"files\":[${files}],\"group\":\"core\",\"libc\":\"gnu\",\"macos_deployment_target\":null,")
 set(after "\"release_version\":\"1.2.3\",\"requires_core\":null,\"schema_version\":1,\"target_id\":\"x86_64-linux-gnu\"}")
 string(SHA256 id "${before}${after}")
@@ -30,6 +52,69 @@ file(WRITE "${prefix}/include/sample.h" "changed\n")
 cpkt_test_failure("SDK payload differs" ${configure} -DCPKT_TARGET_ID=x86_64-linux-gnu)
 file(WRITE "${prefix}/include/sample.h" "int sample(void);\n")
 cpkt_test_command(${configure} -DCPKT_TARGET_ID=x86_64-linux-gnu)
+# Permissions must stay associated with the right file throughout the batch.
+foreach(path include/sample.h bin/tool lib/cmake/CpktSDK/Validate.cmake)
+  file(CHMOD "${prefix}/${path}" PERMISSIONS OWNER_READ OWNER_WRITE GROUP_READ)
+  cpkt_test_failure("SDK payload mode mismatch: ${path}" ${configure} -DCPKT_TARGET_ID=x86_64-linux-gnu)
+  if(path STREQUAL "bin/tool")
+    file(CHMOD "${prefix}/${path}" PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE
+      GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE)
+  else()
+    file(CHMOD "${prefix}/${path}" PERMISSIONS OWNER_READ OWNER_WRITE GROUP_READ WORLD_READ)
+  endif()
+endforeach()
+file(REMOVE "${prefix}/include/alias.h")
+file(WRITE "${work}/outside.h" "outside\n")
+# Make the escaping link resolve, so containment rather than existence rejects it.
+file(CREATE_LINK "../../outside.h" "${prefix}/include/alias.h" SYMBOLIC)
+cpkt_test_failure("Escaping SDK link" ${configure} -DCPKT_TARGET_ID=x86_64-linux-gnu)
+file(REMOVE "${prefix}/include/alias.h")
+file(CREATE_LINK sample.h "${prefix}/include/alias.h" SYMBOLIC)
+cpkt_test_command(${configure} -DCPKT_TARGET_ID=x86_64-linux-gnu)
+
+# Exercise both command formats using the host's real stat for permissions.
+# The wrapper also makes subprocess count and partial-output failures observable.
+find_program(real_stat NAMES stat REQUIRED)
+if(CMAKE_HOST_SYSTEM_NAME STREQUAL "Darwin")
+  set(host_stat_args "-f %Lp")
+else()
+  set(host_stat_args "-c %a")
+endif()
+set(stat_wrapper [=[#!/bin/sh
+printf '%s %s %s\n' "$1" "$2" "$#" >> "$CPKT_STAT_LOG"
+case "$CPKT_STAT_CASE" in
+  fail) exit 1 ;;
+  short) printf '644\n'; exit 0 ;;
+  extra) printf '644\n644\n755\n600\n644\n644\n'; exit 0 ;;
+esac
+case "$1:$2" in
+  '-c:%a'|'-f:%Lp') shift 2 ;;
+  *) exit 2 ;;
+esac
+exec "@real_stat@" @host_stat_args@ "$@"
+]=])
+string(CONFIGURE "${stat_wrapper}" stat_wrapper @ONLY)
+file(WRITE "${work}/tools/stat" "${stat_wrapper}")
+file(CHMOD "${work}/tools/stat" PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE)
+foreach(host Linux Darwin)
+  file(WRITE "${work}/stat.log" "")
+  set(wrapped "${CMAKE_COMMAND}" -E env "PATH=${work}/tools:$ENV{PATH}"
+    "CPKT_STAT_LOG=${work}/stat.log" ${configure} "-DTEST_STAT_HOST=${host}")
+  cpkt_test_command("${CMAKE_COMMAND}" -E env "CPKT_STAT_CASE=" ${wrapped})
+  file(READ "${work}/stat.log" calls)
+  if(host STREQUAL "Darwin")
+    set(expected_call "-f %Lp 7\n")
+  else()
+    set(expected_call "-c %a 7\n")
+  endif()
+  if(NOT calls STREQUAL expected_call)
+    message(FATAL_ERROR "Expected one permission query for all five files: ${calls}")
+  endif()
+  foreach(failure fail short extra)
+    cpkt_test_failure("SDK payload mode query failed" "${CMAKE_COMMAND}" -E env
+      "CPKT_STAT_CASE=${failure}" ${wrapped})
+  endforeach()
+endforeach()
 string(REPLACE "1.2.3" "1.2.4" corrupt "${manifest}")
 file(WRITE "${prefix}/share/cpkt/packages/core.json" "${corrupt}")
 cpkt_test_failure("manifest identity mismatch" ${configure} -DCPKT_TARGET_ID=x86_64-linux-gnu)
