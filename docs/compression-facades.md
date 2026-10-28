@@ -1,15 +1,19 @@
 # Archive, compression, foreign calls and YAML
 
 cpktmisc bundles libffi 3.8.0, libarchive 3.8.9, zstd 1.5.7, libyaml 0.2.5,
-bzip2 1.0.8, xz/liblzma 5.8.4, LZ4 1.10.0 and LZO 2.10. The archive library
+bzip2 1.0.8, xz/liblzma 5.8.4 and LZ4 1.10.0. The archive library
 uses these bundled codecs and the independently installed core SDK's zlib,
 OpenSSL and libxml2.
-Its BLAKE2 implementation is built in. Filters that upstream implements by
-launching an external program retain that upstream requirement.
+Its BLAKE2 implementation is built in. Gzip reading and writing use core's
+zlib without an external gzip program. LZO is not bundled or linked, and
+libarchive's LZO backend is disabled. The complete libarchive API retains its
+LZOP entry points, which require an external `lzop` executable under upstream
+fallback behavior. Filters that upstream implements by launching an external
+program retain that upstream requirement.
 
 libyaml and bzip2 expose their upstream C89 headers. libffi, libarchive, zstd,
-liblzma, LZ4 and LZO also provide standalone `<cpkt/ffi.h>`, `<cpkt/archive.h>`,
-`<cpkt/zstd.h>`, `<cpkt/lzma.h>`, `<cpkt/lz4.h>` and `<cpkt/lzo.h>` facades.
+liblzma and LZ4 also provide standalone `<cpkt/ffi.h>`, `<cpkt/archive.h>`,
+`<cpkt/zstd.h>`, `<cpkt/lzma.h>` and `<cpkt/lz4.h>` facades.
 The generated declarations include advanced, deprecated and static-only APIs.
 Every target's declarations are generated from its installed pinned headers
 and system headers. Upstream headers and static/shared libraries also ship.
@@ -34,7 +38,6 @@ For the pinned x86_64 GNU configuration, the public function inventories are:
 | zstd 1.5.7, including dictionary and error APIs | 187 | `cpkt/zstd.h` |
 | liblzma 5.8.4 | 114 | `cpkt/lzma.h` |
 | LZ4 1.10.0, including frame and file APIs | 117 | `cpkt/lz4.h` |
-| LZO 2.10 | 93 | `cpkt/lzo.h` |
 | libyaml 0.2.5 | 48 | `yaml.h` |
 | bzip2 1.0.8 | 24 | `bzlib.h` |
 
@@ -103,11 +106,6 @@ leave the complete iterator unchanged, including its copied flags.
 Reserved and private fields remain
 implementation storage and must not be changed while an operation is active.
 
-LZO's assembly-named decoder declarations have no upstream assembly
-implementation on the shipped architectures. Their facade operations use
-the corresponding upstream portable decoder, including the safe decoder
-for safe variants. The decompression and error contracts are retained.
-
 Streaming calls operate directly on caller buffers and upstream state.
 Libarchive callback input, zstd streaming, liblzma streaming and LZ4 file
 operations retain incremental flow. Backend-internal buffering follows the
@@ -115,7 +113,7 @@ upstream API; the facade introduces no full-payload buffering or spooling.
 
 Static and shared facade libraries are `libcpkt_LIBRARY`. Public CMake
 packages are `CpktFfiFacade`, `CpktArchiveFacade`, `CpktZstdFacade`,
-`CpktLzmaFacade`, `CpktLz4Facade` and `CpktLzoFacade`, with `cpkt::LIBRARY`
+`CpktLzmaFacade` and `CpktLz4Facade`, with `cpkt::LIBRARY`
 and `cpkt::LIBRARY_shared` targets. pkg-config names are `cpkt-LIBRARY`;
 use `--static` for static consumers. The native libraries retain their ABI
 identities. Each new facade starts at independent ABI major 0.
@@ -126,8 +124,7 @@ pkg-config, run the installed `lib/cmake/CpktMisc/pkg-config` CMake project with
 environment as the link query. It checks the selected core's compatibility floor,
 target and payload; CMake package discovery performs these checks automatically.
 
-LZO is GPL version 2 or later. Other upstream license texts, and XZ's
-additional notices, accompany the SDK under
+Upstream license texts, including XZ's additional notices, accompany the SDK under
 `share/doc/cpkt/misc/third_party/`. The executable examples in
 `tests/*_facade_test.c` exercise calls, closures, codec round trips,
 streaming, full-width values, callbacks, cleanup and failure results.

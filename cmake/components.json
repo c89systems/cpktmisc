@@ -19,6 +19,7 @@
           "docs/audio-sus-facade-spec.md",
           "docs/pdf-c89-facade.md",
           "docs/compression-facades.md",
+          "docs/releases/0.3.0.md",
           "docs/releases/0.2.1.md",
           "docs/releases/0.2.0.md",
           "docs/releases/0.1.0.md"
@@ -2097,77 +2098,6 @@
       },
       "recipe_file": "cmake/dependencies/lz4.cmake"
     },
-    "lzo": {
-      "group": "misc",
-      "directory": "lzo",
-      "dependencies": [],
-      "recipe_functions": [
-        "cpkt_add_lzo"
-      ],
-      "recipe_inputs": [
-        "cmake/dependencies/lzo.cmake",
-        "cmake/dependencies/codecs-common.cmake"
-      ],
-      "variants": [
-        "static",
-        "shared"
-      ],
-      "test_dependencies": [],
-      "notices": [
-        "LICENSE"
-      ],
-      "payload": {
-        "install_prefix": "install",
-        "headers": [
-          "include/**"
-        ],
-        "libraries": [
-          "lib/**"
-        ],
-        "metadata": [
-          "lib/pkgconfig/**",
-          "lib/cmake/**"
-        ]
-      },
-      "helpers": [
-        "cpkt_add_lzo",
-        "cpkt_codec_cmake",
-        "cpkt_codec_autotools",
-        "cpkt_codec_import"
-      ],
-      "package": {
-        "cmake": [
-          "CpktLzo"
-        ],
-        "pkgconfig": [
-          "lzo2"
-        ],
-        "license": "src/COPYING",
-        "facades": [
-          {
-            "target": "cpkt_lzo",
-            "cmake": "CpktLzoFacade",
-            "pkgconfig": "cpkt-lzo",
-            "headers": [
-              "@generated"
-            ],
-            "generated": "lzo",
-            "export_catalog": "@generated/lzo/exports.txt",
-            "abi_version_variable": "CPKT_LZO_ABI_VERSION",
-            "forbidden_needed": [
-              "liblzo2"
-            ]
-          }
-        ],
-        "owned_patterns": [
-          "include/lzo/**",
-          "lib/liblzo2*",
-          "include/cpkt/lzo.h"
-        ],
-        "version_variable": "CPKT_LZO_VERSION"
-      },
-      "recipe_file": "cmake/dependencies/lzo.cmake"
-    },
     "zstd": {
       "group": "misc",
       "directory": "zstd",
@@ -2246,7 +2176,6 @@
         "bzip2",
         "xz",
         "lz4",
-        "lzo",
         "zstd",
         "zlib",
         "openssl",
@@ -3386,63 +3315,6 @@
         "tests/lz4_facade_test.c"
       ]
     },
-    "cpkt_lzo_sources": {
-      "group": "misc",
-      "kind": "add_custom_target",
-      "public": false,
-      "requires": [
-        "core"
-      ],
-      "source_inputs": [
-        "tools/generate_compression_facade.py",
-        "cmake/CompressionFacadeGeneration.cmake",
-        "cmake/generate_facade_exports.cmake"
-      ]
-    },
-    "cpkt_lzo_static": {
-      "group": "misc",
-      "kind": "add_library",
-      "public": true,
-      "requires": [
-        "core"
-      ],
-      "source_inputs": [
-        "tools/generate_compression_facade.py"
-      ]
-    },
-    "cpkt_lzo_facade_static_test": {
-      "group": "misc",
-      "kind": "add_executable",
-      "public": false,
-      "requires": [
-        "core"
-      ],
-      "source_inputs": [
-        "tests/lzo_facade_test.c"
-      ]
-    },
-    "cpkt_lzo_shared": {
-      "group": "misc",
-      "kind": "add_library",
-      "public": true,
-      "requires": [
-        "core"
-      ],
-      "source_inputs": [
-        "tools/generate_compression_facade.py"
-      ]
-    },
-    "cpkt_lzo_facade_shared_test": {
-      "group": "misc",
-      "kind": "add_executable",
-      "public": false,
-      "requires": [
-        "core"
-      ],
-      "source_inputs": [
-        "tests/lzo_facade_test.c"
-      ]
-    },
     "cpkt_native_codecs_static_test": {
       "group": "misc",
       "kind": "add_executable",
@@ -3514,18 +3386,6 @@
       ]
     },
     "cpkt_lz4_layout_test": {
-      "group": "misc",
-      "kind": "add_executable",
-      "public": false,
-      "requires": [
-        "core"
-      ],
-      "source_inputs": [
-        "tests/compression_layout_test.c",
-        "tools/generate_compression_facade.py"
-      ]
-    },
-    "cpkt_lzo_layout_test": {
       "group": "misc",
       "kind": "add_executable",
       "public": false,
@@ -5824,42 +5684,6 @@
       ],
       "target_sensitive": false
     },
-    "lzo_facade_static": {
-      "group": "misc",
-      "command_inputs": [],
-      "execution": "runtime",
-      "requires": [
-        "core"
-      ],
-      "registrations": [
-        {
-          "name": "lzo_facade_static",
-          "conditions": [
-            "CPKT_BUILD_TESTS",
-            "CPKT_CAN_RUN_TARGET_EXECUTABLES"
-          ]
-        }
-      ],
-      "target_sensitive": false
-    },
-    "lzo_facade_shared": {
-      "group": "misc",
-      "command_inputs": [],
-      "execution": "runtime",
-      "requires": [
-        "core"
-      ],
-      "registrations": [
-        {
-          "name": "lzo_facade_shared",
-          "conditions": [
-            "CPKT_BUILD_TESTS",
-            "CPKT_CAN_RUN_TARGET_EXECUTABLES"
-          ]
-        }
-      ],
-      "target_sensitive": false
-    },
     "native_codecs_static": {
       "group": "misc",
       "command_inputs": [],
@@ -6019,25 +5843,6 @@
       ],
       "target_sensitive": true
     },
-    "compression_api_lzo": {
-      "group": "misc",
-      "command_inputs": [
-        "tests/compression_api_test.cmake", "tests/compression_api_probes.jq"
-      ],
-      "execution": "host",
-      "requires": [
-        "core"
-      ],
-      "registrations": [
-        {
-          "name": "compression_api_lzo",
-          "conditions": [
-            "CPKT_BUILD_TESTS"
-          ]
-        }
-      ],
-      "target_sensitive": true
-    },
     "linked_toolchain_probes": {
       "group": "misc",
       "command_inputs": [
@@ -6147,24 +5952,6 @@
       ],
       "target_sensitive": false
     },
-    "compression_layout_lzo": {
-      "group": "misc",
-      "command_inputs": [],
-      "execution": "runtime",
-      "requires": [
-        "core"
-      ],
-      "registrations": [
-        {
-          "name": "compression_layout_lzo",
-          "conditions": [
-            "CPKT_BUILD_TESTS",
-            "CPKT_CAN_RUN_TARGET_EXECUTABLES"
-          ]
-        }
-      ],
-      "target_sensitive": false
-    },
     "compression_metadata": {
       "group": "misc",
       "command_inputs": [
@@ -6222,7 +6009,6 @@
       "tests/zstd_facade_test.c",
       "tests/lzma_facade_test.c",
       "tests/lz4_facade_test.c",
-      "tests/lzo_facade_test.c",
       "tests/native_codecs_test.c"
     ]
   },
@@ -6752,51 +6538,6 @@
       "source": "tests/lz4_facade_test.c",
       "link": [
         "cpkt::lz4"
-      ],
-      "kind": "pic",
-      "standard": 89,
-      "runtime_args": [],
-      "link_contains": [],
-      "link_lacks": []
-    },
-    "cpkt_cmake_lzo_facade_static": {
-      "component": "lzo",
-      "group": "misc",
-      "package": "CpktLzoFacade",
-      "pc": "cpkt-lzo",
-      "source": "tests/lzo_facade_test.c",
-      "link": [
-        "cpkt::lzo"
-      ],
-      "kind": "static",
-      "standard": 89,
-      "runtime_args": [],
-      "link_contains": [],
-      "link_lacks": []
-    },
-    "cpkt_cmake_lzo_facade_shared": {
-      "component": "lzo",
-      "group": "misc",
-      "package": "CpktLzoFacade",
-      "pc": "cpkt-lzo",
-      "source": "tests/lzo_facade_test.c",
-      "link": [
-        "cpkt::lzo_shared"
-      ],
-      "kind": "shared",
-      "standard": 89,
-      "runtime_args": [],
-      "link_contains": [],
-      "link_lacks": []
-    },
-    "cpkt_cmake_lzo_facade_pic": {
-      "component": "lzo",
-      "group": "misc",
-      "package": "CpktLzoFacade",
-      "pc": "cpkt-lzo",
-      "source": "tests/lzo_facade_test.c",
-      "link": [
-        "cpkt::lzo"
       ],
       "kind": "pic",
       "standard": 89,

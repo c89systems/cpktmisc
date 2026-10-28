@@ -195,7 +195,6 @@ set(CPKT_LIBYAML_VERSION "0.2.5" CACHE STRING "Pinned libyaml release.")
 set(CPKT_BZIP2_VERSION "1.0.8" CACHE STRING "Pinned bzip2 release.")
 set(CPKT_XZ_VERSION "5.8.4" CACHE STRING "Pinned xz/liblzma release.")
 set(CPKT_LZ4_VERSION "1.10.0" CACHE STRING "Pinned LZ4 release.")
-set(CPKT_LZO_VERSION "2.10" CACHE STRING "Pinned LZO release.")
 set(CPKT_OPEN62541_PATCHSET "mqtt-prefix-packet-headers-crypto-logging-24" CACHE STRING "cpkt open62541 patchset identity." FORCE)
 # ABI declarations live in cmake/CpktABIVersions.cmake.
 if(NOT CPKT_SUS_CPU_ONLY)

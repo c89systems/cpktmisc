@@ -12,15 +12,17 @@ metadata, examples and complete third-party license notices.
 - whisper
 - open62541
 - libffi, libarchive, zstd and libyaml
-- bzip2, xz/liblzma, LZ4 and LZO
+- bzip2, xz/liblzma and LZ4
 
-libffi, libarchive, zstd, liblzma, LZ4 and LZO have complete C89 facade surfaces,
+libffi, libarchive, zstd, liblzma and LZ4 have complete C89 facade surfaces,
 including advanced and deprecated public APIs. libyaml, bzip2 and libpng retain
 their native C89 interfaces. PDF covers the complete libHaru API; audio and speech
 retain their declared product APIs. See [facade contracts](docs/compression-facades.md)
 and the [dependency inventory](docs/dependencies.md) for the current surface and
-prerequisites. The [0.2.1 release notes](docs/releases/0.2.1.md) describe the
-validation optimization and core upgrade. [0.2.0](docs/releases/0.2.0.md) records
+prerequisites. The [0.3.0 release notes](docs/releases/0.3.0.md) describe LZO's
+removal, retained gzip support and the core upgrade.
+[0.2.1](docs/releases/0.2.1.md) records the validation optimization and core upgrade.
+[0.2.0](docs/releases/0.2.0.md) records
 the compatibility and metadata changes; [0.1.0](docs/releases/0.1.0.md) records
 the original published inventory and consumer requirements.
 
@@ -97,7 +99,7 @@ make debug
 
 `dependencies/cpkt.json` pins one published core version and, for every supported
 target, its exact GitHub URL, SHA-256 archive digest and portable package ID.
-All seven 0.5.1 build pins come from the verified core publication. Native
+All seven 0.6.1 build pins come from the verified core publication. Native
 CMake validates the selected SDK's manifest and payload bytes. There is no
 sibling-checkout or host-library fallback. Ordinary consumer operations only validate an existing prerequisite;
 `deps-core` is the explicit acquisition action.
@@ -109,8 +111,9 @@ compatibility span includes that baseline, with the same target; they independen
 validate both SDKs' payloads. A newer compatible core can be selected without
 rebuilding misc. Static applications relink to incorporate updated core code;
 shared deployments select the new core libraries at runtime.
-The current baseline is 0.5.1: the selected core must satisfy
-`CpktCore_COMPATIBLE_SINCE <= 0.5.1 <= CpktCore_VERSION`.
+The current baseline is 0.6.1: the selected core must satisfy
+`CpktCore_COMPATIBLE_SINCE <= 0.6.1 <= CpktCore_VERSION`.
+Core 0.6.1 retains its compatibility floor of 0.2.0.
 Install core and misc into separate
 prefixes and discover them through `CMAKE_PREFIX_PATH`, or their `lib/pkgconfig`
 directories through `PKG_CONFIG_PATH`. Installed consumers use the selected core's

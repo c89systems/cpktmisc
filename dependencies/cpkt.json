@@ -3,40 +3,40 @@
   "schema_version": 1,
   "targets": {
     "aarch64-linux-gnu": {
-      "package_id": "efe64c99653a1bbd35cd211db514bcbc52292dbc0d538f1de194a31bb96c9e5f",
-      "sha256": "2b2cf3a6b302053bf73bd7c499b966551fe7536e0620f3da0c7aa0657b178650",
-      "url": "https://github.com/c89systems/cpkt/releases/download/v0.5.1/cpkt-0.5.1-aarch64-linux-gnu.tar.gz"
+      "package_id": "01ac3a2f047675c3aab540a1b20112038a9cd470680f714a19302c6095ffd882",
+      "sha256": "3c5f172a50b7df7e37e99dbf52014d3b09114cbc143339f1109c23715fa117a1",
+      "url": "https://github.com/c89systems/cpkt/releases/download/v0.6.1/cpkt-0.6.1-aarch64-linux-gnu.tar.gz"
     },
     "aarch64-linux-musl": {
-      "package_id": "f87918e94adee5e068b3566422972c4e2f77c0ea9b21b5e314415cb56a157b97",
-      "sha256": "1db41dfa3e76b82546b73877bb37d6d800f4b05ba921781fd25b032b93dd90cd",
-      "url": "https://github.com/c89systems/cpkt/releases/download/v0.5.1/cpkt-0.5.1-aarch64-linux-musl.tar.gz"
+      "package_id": "2c08ded41ceac4581a2480d4a2742890e86fc0ab78b38408533f9238e1db6fbf",
+      "sha256": "bf39981f557b1ed10940ee376bb81d0fa734d3d290e5d95cbc4f786ac466cb93",
+      "url": "https://github.com/c89systems/cpkt/releases/download/v0.6.1/cpkt-0.6.1-aarch64-linux-musl.tar.gz"
     },
     "arm64-apple-darwin": {
-      "package_id": "51dd09d87fac985728d7a1bba3351d7a8b57969dfc1b4799ee5eb6fbccf91040",
-      "sha256": "fbe6331882330e4a4b59a1cd9b2d6dd8dd9d479d17642926d285da5116edc58f",
-      "url": "https://github.com/c89systems/cpkt/releases/download/v0.5.1/cpkt-0.5.1-arm64-apple-darwin.tar.gz"
+      "package_id": "c5b1f31beb7421f9abfb1ab9f97fbba706fb654829d675cde9d32c755242ae65",
+      "sha256": "8f32fe4a9e477196d75a927af329dafcc91eda5e4b505012a7319edcf92e8579",
+      "url": "https://github.com/c89systems/cpkt/releases/download/v0.6.1/cpkt-0.6.1-arm64-apple-darwin.tar.gz"
     },
     "armhf-linux-gnu": {
-      "package_id": "780d48ebf3ca6f7e263533727733a6e5cb710f8b8fdd0692673704e60a018da1",
-      "sha256": "545c99dd32bf238bad8c6e27c053a2cfe68b1369e370d129b4e0b5aed1e0df1e",
-      "url": "https://github.com/c89systems/cpkt/releases/download/v0.5.1/cpkt-0.5.1-armhf-linux-gnu.tar.gz"
+      "package_id": "f6008949ab708622cf67e0d5b786f64b508e58423138fcd1e78e9f27ca667dd9",
+      "sha256": "c2200e3a4a05ed8807d0bb19b0042179bd47c7ce83174932f521d36aee11b935",
+      "url": "https://github.com/c89systems/cpkt/releases/download/v0.6.1/cpkt-0.6.1-armhf-linux-gnu.tar.gz"
     },
     "armhf-linux-musl": {
-      "package_id": "7d463e4966a86344f8416db2ab7d2aaf2027af57f38b52ca7c3015dc09643fea",
-      "sha256": "ab2fafaf5dbc46cc7f289ddaf7d19bea3cd0f90e637ed8a7c3593113550959b5",
-      "url": "https://github.com/c89systems/cpkt/releases/download/v0.5.1/cpkt-0.5.1-armhf-linux-musl.tar.gz"
+      "package_id": "5b74c0a457218acbe1069f999201a1d41d96f5da7b30d1365b0c92911c637d69",
+      "sha256": "eb1ed255f3ea60c82c3973f1246571872b4f0fd7866364e544b5627e5cd3ee98",
+      "url": "https://github.com/c89systems/cpkt/releases/download/v0.6.1/cpkt-0.6.1-armhf-linux-musl.tar.gz"
     },
     "x86_64-linux-gnu": {
-      "package_id": "31542fcc404bd53df216e2866c0e54355d02ec404561c9775ff5687ff6b344ab",
-      "sha256": "eebbc4b731e114d950e7b67230a22686f6eff06d02ca18eec8066c637f7765b9",
-      "url": "https://github.com/c89systems/cpkt/releases/download/v0.5.1/cpkt-0.5.1-x86_64-linux-gnu.tar.gz"
+      "package_id": "bc03b1f3f4011e14c3f5f0971838b123728b6823b7f7eb159791b41d3a6f78a0",
+      "sha256": "99625b7889f78b6e467d38e7dbec08d9d0ed6f599ff4571244060ce67c6ca62f",
+      "url": "https://github.com/c89systems/cpkt/releases/download/v0.6.1/cpkt-0.6.1-x86_64-linux-gnu.tar.gz"
     },
     "x86_64-linux-musl": {
-      "package_id": "a2e79a64622615c7a63747f7a233dc23910e8f0a128693cfc58b6b81ce805aea",
-      "sha256": "043ab9cdc6cec901bebac3773af23074194843688e191d1eb5da2a24e8064cbb",
-      "url": "https://github.com/c89systems/cpkt/releases/download/v0.5.1/cpkt-0.5.1-x86_64-linux-musl.tar.gz"
+      "package_id": "e00e54856fd378d5d24e36682ef657f50dc370355c89491f4943554fa0072fe7",
+      "sha256": "f4b1b0b2b257d2347be7d2b437dbb84891c19e39067bba24464b415dd76eb67e",
+      "url": "https://github.com/c89systems/cpkt/releases/download/v0.6.1/cpkt-0.6.1-x86_64-linux-musl.tar.gz"
     }
   },
-  "version": "0.5.1"
+  "version": "0.6.1"
 }

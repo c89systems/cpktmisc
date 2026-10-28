@@ -123,21 +123,18 @@ class Generator:
             'lz4': ['lz4.h', 'lz4hc.h', 'lz4frame.h', 'lz4file.h'],
             'archive': ['archive.h', 'archive_entry.h'],
             'lzma': ['lzma.h'],
-            'lzo': ['lzo/' + name + '.h' for name in ('lzo1', 'lzo1a', 'lzo1b', 'lzo1c', 'lzo1f',
-                     'lzo1x', 'lzo1y', 'lzo1z', 'lzo2a', 'lzo_asm', 'lzoutil')],
         }[args.library]
         self.family = {'zstd': r'^(ZSTD|ZDICT)_', 'ffi': r'^ffi_',
                        'lz4': r'^(LZ4|blockSizeID_t$|blockMode_t$|frameType_t$|contentChecksum_t$)',
-                       'archive': r'^(archive_|la_)', 'lzma': r'^lzma_',
-                       'lzo': r'^(lzo_|lzo[12]|_+lzo_)'}[args.library]
+                       'archive': r'^(archive_|la_)', 'lzma': r'^lzma_'}[args.library]
         self.macro_family = {'zstd': r'(?:ZSTD|ZDICT)_', 'ffi': r'(?:FFI_|ffi_type_)',
                              'lz4': r'LZ4\w*', 'archive': r'(?:ARCHIVE_|AE_)',
-                             'lzma': r'(?:LZMA_|lzma_)', 'lzo': r'(?:LZO\w*|lzo_)'}[args.library]
+                             'lzma': r'(?:LZMA_|lzma_)'}[args.library]
         self.defines = {'zstd': '#define ZSTD_STATIC_LINKING_ONLY\n#define ZDICT_STATIC_LINKING_ONLY\n',
                         'ffi': '',
                         'lz4': '#define LZ4_STATIC_LINKING_ONLY\n#define LZ4_HC_STATIC_LINKING_ONLY\n'
                                '#define LZ4F_STATIC_LINKING_ONLY\n#define LZ4F_ENABLE_OBSOLETE_ENUMS\n',
-                        'archive': '', 'lzma': '', 'lzo': ''}[args.library]
+                        'archive': '', 'lzma': ''}[args.library]
         self.input = self.defines + ''.join('#include <' + h + '>\n' for h in self.headers)
         command = [args.clang, '-x', 'c', '-std=c99', '-Wno-deprecated-declarations',
                    '-I', str(args.include)] + args.clang_argument
@@ -154,9 +151,6 @@ class Generator:
         self.signed_words = {'long long', 'int64_t'}
         if args.library == 'lzma':
             self.unsigned_words.add('lzma_vli')
-        if args.library == 'lzo':
-            self.unsigned_words |= {'lzo_uint64_t', 'lzo_uint64', 'lzo_ullong_t__'}
-            self.signed_words |= {'lzo_int64_t', 'lzo_int64', 'lzo_llong_t__'}
         if args.library == 'archive':
             self.unsigned_words |= {'la_uint64_t', 'dev_t'}
             self.signed_words |= {'la_int64_t', 'time_t'}
@@ -213,14 +207,10 @@ class Generator:
             stat_definition('stat')
         self.typedefs = {n['name']: n for n in self.nodes if n['kind'] == 'TypedefDecl'
                          and re.match(self.family, n['name'])}
-        if args.library == 'lzo':
-            self.typedefs = {name: node for name, node in self.typedefs.items() if not name.endswith('__')}
         self.functions = {n['name']: n for n in self.nodes if n['kind'] == 'FunctionDecl'
                           and re.match(self.family, n['name'])}
         self.variables = {n['name']: n for n in self.nodes if n['kind'] == 'VarDecl'
                           and re.match(self.family, n['name'])}
-        if args.library == 'lzo':
-            self.variables = {name: node for name, node in self.variables.items() if not name.startswith('lzo_cta__')}
         self.records = {}
         self.enums = {}
         for name, node in self.typedefs.items():
@@ -238,8 +228,6 @@ class Generator:
         self.converted = set()
         if args.library == 'lzma':
             self.converted.add('lzma_index_iter')
-        elif args.library == 'lzo':
-            self.converted.add('lzo_align_t')
         self.used_converters = set()
         if args.library == 'lzma':
             self.used_converters |= {(name, direction) for name in ('lzma_filter', 'lzma_stream', 'lzma_block')
@@ -284,16 +272,6 @@ class Generator:
                     continue
                 self.constants[name] = (parameters or '', value)
                 self.mapping[name] = self.guard + '_' + name
-        if args.library == 'lzo':
-            internal = dict(re.findall(r'^#define (__LZO_\w+)[ \t]+([^\n]*)$', pp.stdout, re.M))
-            for name, (parameters, value) in self.constants.items():
-                for _ in range(len(internal)):
-                    replaced = re.sub(r'\b__LZO_\w+\b', lambda m: internal.get(m[0], m[0]), value)
-                    if replaced == value:
-                        break
-                    value = replaced
-                value = value.replace('__lzo_cdecl', '').replace('__lzo_cte(0)', '(0)')
-                self.constants[name] = (parameters, value)
 
     def needs_conversion(self, value):
         return bool(any(re.search(r'\b' + re.escape(word) + r'\b', value)
@@ -399,8 +377,6 @@ class Generator:
                 output += self.emit_fields(record)
                 if self.args.library == 'lzma' and name == 'lzma_stream':
                     output.append('  void *cpkt_state; /* Private persistent native stream/block storage. */')
-                if self.args.library == 'lzo' and name == 'lzo_align_t':
-                    output.append('  double cpkt_alignment; /* Retains native 64-bit alignment on ARMv7. */')
                 output.append('}' + alignment_decoration(record)
                               + (';' if tag else ' ' + public + alias_alignment + ';'))
             elif name in self.enums:
@@ -468,9 +444,7 @@ class Generator:
                     output.append(indent + '} ' + field.get('name', 'trampoline') + (array[0] if array else '') + ';')
                     anonymous = None
                 else:
-                    if self.args.library == 'lzo' and field['name'] == 'a10':
-                        output.append(indent + 'cpkt_compression_u64 a10;')
-                    elif self.args.library == 'lzma' and field['name'] == 'flags' and field['type']['qualType'] == 'const lzma_stream_flags *':
+                    if self.args.library == 'lzma' and field['name'] == 'flags' and field['type']['qualType'] == 'const lzma_stream_flags *':
                         output += [indent + 'cpkt_lzma_lzma_stream_flags flags;', indent + 'int flags_present;']
                     else:
                         output.append(indent + declaration(self.public_type(field['type']['qualType']), field['name']) + ';')
@@ -638,14 +612,7 @@ class Generator:
         if self.args.library == 'lzma' and name == 'lzma_end':
             return signature, []
         body = [signature + ' {'] + before
-        backend = name
-        if self.args.library == 'lzo' and '_decompress_asm' in name:
-            # These declarations are architecture-independent, but upstream
-            # only implements the assembly symbols for 32-bit x86 (not a
-            # shipped target). The equivalent upstream portable decoder keeps
-            # every declared operation usable on all shipped architectures.
-            backend = name.split('_decompress_asm')[0] + '_decompress' + ('_safe' if name.endswith('_safe') else '')
-        call = backend + '(' + ', '.join(arguments) + ')'
+        call = name + '(' + ', '.join(arguments) + ')'
         if result == 'void':
             body += ['  ' + call + ';'] + after
         else:
@@ -716,25 +683,10 @@ class Generator:
                     value = re.sub(r'UINT64_C\((0x[0-9A-Fa-f]+|[0-9]+)\)', wide_literal, value)
                     value = re.sub(r'UINT32_C\(([^)]+)\)', r'\1U', value)
                     value = self.public_type(value)
-            elif self.args.library == 'lzo':
-                if re.fullmatch(r'lzo_uint(?:64[elf]?|_(?:least|fast)64)_t', name):
-                    value = 'cpkt_compression_u64'
-                elif re.fullmatch(r'lzo_int(?:64[elf]?|_(?:least|fast)64)_t', name):
-                    value = 'cpkt_compression_i64'
-                elif name == 'LZO_UINT64_C':
-                    value = 'cpkt_lzo_u64_literal(#c)'
-                elif name == 'LZO_INT64_C':
-                    value = 'cpkt_lzo_i64_literal(#c)'
-                elif name == 'LZO_UNUSED_LABEL':
-                    value = 'do { if (0) goto l; } while (0)'
-                elif name in ('LZO_COMPILE_TIME_ASSERT', 'LZO_COMPILE_TIME_ASSERT_HEADER'):
-                    value = 'extern int cpkt_lzo_compile_assert[(e) ? 1 : -1]'
-                else:
-                    value = self.public_type(value)
             else:
                 value = self.public_type(value)
             h.append('#define ' + self.mapping[name] + parameters + ' ' + value)
-        if self.args.library in ('zstd', 'lz4', 'lzma', 'lzo'):
+        if self.args.library in ('zstd', 'lz4', 'lzma'):
             h += ['/** Construct a full-width unsigned C89 word without narrowing. */',
                   'cpkt_compression_u64 ' + self.prefix + 'u64_make(unsigned int lo, unsigned int hi);',
                   ]
@@ -752,11 +704,6 @@ class Generator:
                   'int cpkt_lzma_vli_is_valid(cpkt_compression_u64 value);',
                   '/** Parse an integer literal for VLI macros using native strtoull/errno semantics. */',
                   'cpkt_compression_u64 cpkt_lzma_u64_literal(const char *literal);']
-        if self.args.library == 'lzo':
-            h += ['/** Parse an unsigned integer literal for constant macros using strtoull/errno semantics. */',
-                  'cpkt_compression_u64 cpkt_lzo_u64_literal(const char *literal);',
-                  '/** Parse a signed integer literal for constant macros using strtoll/errno semantics. */',
-                  'cpkt_compression_i64 cpkt_lzo_i64_literal(const char *literal);']
         c = [self.defines, '#include <string.h>'] + ['#include <' + name + '>' for name in self.headers]
         for name, expression in self.stat_private_aliases.items():
             c.append('typedef ' + expression + ' ' + name + ';')
@@ -770,26 +717,18 @@ class Generator:
                   '__builtin_types_compatible_p(' + name + ', ' + self.enum_integer(name) + ') ? 1 : -1];']
         if self.args.library == 'ffi':
             c += ['void *cpkt_ffi_closure_pointer(void (*function)(void)) { return FFI_CL(function); }']
-        if self.args.library in ('zstd', 'lz4', 'lzma', 'lzo'):
+        if self.args.library in ('zstd', 'lz4', 'lzma'):
             c += [
               'cpkt_compression_u64 ' + self.prefix + 'u64_make(unsigned int lo, unsigned int hi) {',
               '  cpkt_compression_u64 result; result.lo = lo; result.hi = hi; return result;', '}']
-            if self.args.library != 'lzo':
-                native_word = 'uint64_t' if self.args.library == 'lzma' else 'unsigned long long'
-                c += ['static ' + native_word + ' ' + self.prefix + 'word_to_native(cpkt_compression_u64 word) {',
-                      '  return ((unsigned long long)word.hi << 32) | word.lo;', '}']
+            native_word = 'uint64_t' if self.args.library == 'lzma' else 'unsigned long long'
+            c += ['static ' + native_word + ' ' + self.prefix + 'word_to_native(cpkt_compression_u64 word) {',
+                  '  return ((unsigned long long)word.hi << 32) | word.lo;', '}']
             c += [
               'static cpkt_compression_u64 ' + self.prefix + 'word_from_native(unsigned long long word) {',
               '  return ' + self.prefix + 'u64_make((unsigned int)word, (unsigned int)(word >> 32));', '}']
         if self.args.library == 'zstd':
             c += ['size_t ' + self.prefix + 'max_input_size(void) { return ZSTD_MAX_INPUT_SIZE; }']
-        if self.args.library == 'lzo':
-            c += ['#include <stdlib.h>',
-                  'cpkt_compression_u64 cpkt_lzo_u64_literal(const char *literal) {',
-                  '  return cpkt_lzo_word_from_native(strtoull(literal, NULL, 0));', '}',
-                  'cpkt_compression_i64 cpkt_lzo_i64_literal(const char *literal) {',
-                  '  unsigned long long value = (unsigned long long)strtoll(literal, NULL, 0);',
-                  '  cpkt_compression_i64 result; result.lo = (unsigned int)value; result.hi = (int)(value >> 32); return result;', '}']
         if self.args.library == 'archive':
             c += ['#include <stdint.h>', '#include <stdlib.h>', '#include <errno.h>', '#include <pthread.h>',
                   'cpkt_compression_i64 cpkt_archive_i64_make(unsigned int lo, int hi) {',
@@ -821,9 +760,7 @@ class Generator:
                     c += ['  return result;', '}']
         coverage = {'functions': {}, 'types': sorted(self.typedefs), 'variables': {},
                     'constants': sorted(self.constants)}
-        symbols = [self.prefix + 'u64_make'] if self.args.library in ('zstd', 'lz4', 'lzma', 'lzo') else []
-        if self.args.library == 'lzo':
-            symbols += ['cpkt_lzo_u64_literal', 'cpkt_lzo_i64_literal']
+        symbols = [self.prefix + 'u64_make'] if self.args.library in ('zstd', 'lz4', 'lzma') else []
         if self.args.library == 'lzma':
             symbols.append('cpkt_lzma_vli_is_valid')
             symbols.append('cpkt_lzma_u64_literal')
@@ -846,9 +783,6 @@ class Generator:
         for name, node in self.functions.items():
             signature, body = self.emit_function(name, node)
             contract = FUNCTION_CONTRACTS.get(name, 'Preserves upstream ownership, callback and error contracts.')
-            if self.args.library == 'lzo' and '_decompress_asm' in name:
-                contract = 'Uses the corresponding native portable decoder on shipped targets; '
-                contract += 'safe variants retain the native safe-decoder bounds and errors.'
             h += ['/** Native ' + name + '. ' + contract + ' */',
                   signature + ';']
             function_bodies += body
@@ -882,7 +816,7 @@ class Generator:
         public = ['#include <cpkt/' + self.args.library + '.h>']
         native_values, public_values = [], []
         for index, (name, record) in enumerate(self.records.items()):
-            if name in self.type_aliases or name in self.converted and name != 'lzo_align_t':
+            if name in self.type_aliases or name in self.converted:
                 continue
             for lines, type_name, values, side in ((native, name, native_values, 'native'),
                                                    (public, self.mapping[name], public_values, 'public')):
@@ -909,7 +843,7 @@ class Generator:
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('--library', required=True, choices=('zstd', 'ffi', 'lz4', 'archive', 'lzma', 'lzo'))
+    parser.add_argument('--library', required=True, choices=('zstd', 'ffi', 'lz4', 'archive', 'lzma'))
     parser.add_argument('--include', required=True, type=Path)
     parser.add_argument('--output', required=True, type=Path)
     parser.add_argument('--clang', required=True)

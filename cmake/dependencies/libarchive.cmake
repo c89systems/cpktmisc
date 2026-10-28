@@ -2,7 +2,7 @@ function(cpkt_add_libarchive)
   # Function availability checks must link: compile-only probes incorrectly
   # claim Windows-only symbols exist when compiling the Linux/Apple sources.
   set(options -DCMAKE_TRY_COMPILE_TARGET_TYPE=EXECUTABLE
-    -DENABLE_LZO=ON -DENABLE_LZ4=ON -DENABLE_LZMA=ON
+    -DENABLE_LZO=OFF -DENABLE_LZ4=ON -DENABLE_LZMA=ON
     -DENABLE_ZSTD=ON -DENABLE_ZLIB=ON -DENABLE_BZip2=ON
     -DENABLE_OPENSSL=ON -DENABLE_LIBXML2=ON -DENABLE_EXPAT=OFF
     -DENABLE_NETTLE=OFF -DENABLE_MBEDTLS=OFF -DENABLE_LIBB2=OFF
@@ -11,7 +11,7 @@ function(cpkt_add_libarchive)
     "-DZLIB_INCLUDE_DIR=${CPKT_CORE_PREFIX}/include"
     "-DOPENSSL_INCLUDE_DIR=${CPKT_CORE_PREFIX}/include"
     "-DLIBXML2_INCLUDE_DIR=${CPKT_CORE_PREFIX}/include/libxml2")
-  foreach(pair "bzip2|BZIP2|bz2" "xz|LIBLZMA|lzma" "lz4|LZ4|lz4" "lzo|LZO2|lzo2" "zstd|ZSTD|zstd")
+  foreach(pair "bzip2|BZIP2|bz2" "xz|LIBLZMA|lzma" "lz4|LZ4|lz4" "zstd|ZSTD|zstd")
     string(REPLACE "|" ";" fields "${pair}")
     list(GET fields 0 name)
     list(GET fields 1 variable)
@@ -34,7 +34,7 @@ function(cpkt_add_libarchive)
     OPTIONS ${options})
   foreach(kind static shared)
     set_property(TARGET cpkt::libarchive_${kind} PROPERTY INTERFACE_LINK_LIBRARIES
-      "cpkt::bzip2_${kind};cpkt::xz_${kind};cpkt::lz4_${kind};cpkt::lzo_${kind};cpkt::zstd_${kind};cpkt::zlib_${kind};cpkt::openssl_ssl_${kind};cpkt::openssl_crypto_${kind};cpkt::libxml2_${kind};Threads::Threads")
+      "cpkt::bzip2_${kind};cpkt::xz_${kind};cpkt::lz4_${kind};cpkt::zstd_${kind};cpkt::zlib_${kind};cpkt::openssl_ssl_${kind};cpkt::openssl_crypto_${kind};cpkt::libxml2_${kind};Threads::Threads")
   endforeach()
   set(CPKT_libarchive_PREFIX "${CPKT_libarchive_PREFIX}" PARENT_SCOPE)
 endfunction()
